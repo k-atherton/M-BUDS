@@ -1,46 +1,180 @@
 ### LOAD IN PACKAGES ##########################################################
+library(vroom)
 library(phyloseq)
+library(ggplot2)
+library(robCompositions)
+library(gridExtra)
+library(vegan)
 
 ### SCRIPT SETUP ##############################################################
-args <- commandArgs(trailingOnly = TRUE)
 date <- format(Sys.Date(),"_%Y%m%d")
-yourname <- args[1] # user's last name for file storage purposes
-amplicon <- args[2] # options: 16S or ITS
-edit_metadata <- args[3] # options: Y or N
+pwd <- "/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/"
+amplicon <- "16S" # options: 16S or ITS
+yourname <- "atherton" # user's last name for file storage purposes
+edit_metadata <- "N" # options: Y or N
 
-### CHECK FOR AMPLICON TYPE ###################################################
-if(amplicon %in% c("16s", "its", "16S", "ITS")){
-  if(amplicon %in% c("16s", "16S")){
-    amplicon <- "16S"
-  } else{
-    amplicon <- "ITS"
-  }
-  ### CHECK FOR EDITING METADATA ###############################################
-  if(edit_metadata %in% c("Y", "N", "y", "n")){
-    setwd("/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/02_Clean_Data")
-    source("00_functions.R")
-    ### READ IN FORMATTED ASV TABLES ###########################################
-    setwd(paste0("02_DADA2_ASV_Tables/",amplicon))
-    leaf_raw <- readRDS(paste0(yourname, "_", amplicon, 
-                               "phyloseq_leaf_raw_withnegcontrols_"), ".csv")
-    root_raw <- read_in_file(getwd(), paste0(yourname, "_", amplicon, 
-                                             "_ASV_table_root_raw_"), ".csv")
-    msoil_raw <- read_in_file(getwd(), paste0(yourname, "_", amplicon, 
-                                             "_ASV_table_msoil_raw_"), ".csv")
-    osoil_raw <- read_in_file(getwd(), paste0(yourname, "_", amplicon, 
-                                             "_ASV_table_osoil_raw_"), ".csv")
-    
-    write.csv(leaf_raw_tax, paste0(getwd(), yourname, "_", amplicon, 
-                                   "_taxonomy_leaf_raw_", date, ".csv"))
-    write.csv(root_raw_tax, paste0(getwd(), yourname, "_", amplicon, 
-                                   "_taxonomy_root_raw_", date, ".csv"))
-    write.csv(msoil_raw_tax, paste0(getwd(), yourname, "_", amplicon, 
-                                    "_taxonomy_msoil_raw_", date, ".csv"))
-    write.csv(osoil_raw_tax, paste0(getwd(), yourname, "_", amplicon, 
-                                    "_taxonomy_osoil_raw_", date, ".csv"))
-  } else{
-    print("Error: metadata trailing argument not recognized. \nOptions: Y (yes, edit the metadata file with raw DADA2 data) or N (no, do not edit metadata file)")
-  }
+setwd(pwd)
+source("00_functions.R")
+
+### READ IN FORMATTED ASV TABLES ###########################################
+setwd(paste0("02_Clean_Data/02_DADA2_ASV_Tables/",amplicon))
+ps_leaf <- read_in_file(getwd(), paste0("atherton_", amplicon, 
+                                        "_phyloseq_leaf_raw_withnegcontrols_"), 
+                        ".RDS")
+ps_root <- read_in_file(getwd(), paste0("atherton_", amplicon, 
+                                        "_phyloseq_root_raw_withnegcontrols_"), 
+                        ".RDS")
+ps_msoil <- read_in_file(getwd(), paste0("atherton_", amplicon, 
+                                         "_phyloseq_msoil_raw_withnegcontrols_"), 
+                         ".RDS")
+ps_osoil <- read_in_file(getwd(), paste0("atherton_", amplicon, 
+                                         "_phyloseq_osoil_raw_withnegcontrols_"), 
+                         ".RDS")
+
+# Save the metadata in an object
+leaf_meta <- as.data.frame(as.matrix(ps_leaf@sam_data))
+root_meta <- as.data.frame(as.matrix(ps_root@sam_data))
+msoil_meta <- as.data.frame(as.matrix(ps_msoil@sam_data))
+osoil_meta <- as.data.frame(as.matrix(ps_osoil@sam_data))
+
+# Make sequencing depth numeric
+leaf_meta$seq_count_dada2 <- as.numeric(leaf_meta$seq_count_dada2)
+root_meta$seq_count_dada2 <- as.numeric(root_meta$seq_count_dada2)
+msoil_meta$seq_count_dada2 <- as.numeric(msoil_meta$seq_count_dada2)
+osoil_meta$seq_count_dada2 <- as.numeric(osoil_meta$seq_count_dada2)
+
+# Bin sequencing depth
+leaf_meta <- bin_seq_depth(leaf_meta)
+root_meta <- bin_seq_depth(root_meta)
+msoil_meta <- bin_seq_depth(msoil_meta)
+osoil_meta <- bin_seq_depth(osoil_meta)
+
+### VISUALIZE RAW DATA ########################################################
+setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
+             "/Figures"))
+
+plot_prefilter_seq_depth(leaf_meta, "leaf", 10000, date)
+plot_prefilter_seq_depth(root_meta, "root", 10000, date)
+plot_prefilter_seq_depth(msoil_meta, "msoil", 8000, date)
+plot_prefilter_seq_depth(osoil_meta, "osoil", 8000, date)
+
+### DROP OUTLIERS AND SAMPLES WITH TOO FEW READS ##############################
+# LEAF SAMPLES
+setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
+             "/Figures/leaf"))
+leaf_raw <- otu_table(ps_leaf)
+
+# see the data structure before removing outliers
+id_outliers_evaluate_seq_depth(leaf_raw, leaf_meta, "leaf", yourname, 
+                               amplicon, date, "no_outliers_removed") 
+
+# run this step multiple times until you feel you have removed all outliers
+# list outliers to remove
+if(amplicon == "16S"){
+  leaf_outliers <- c("HF069_D3_small_L2_16S_S181", "HF04_QR_Y_edge_L1_16S_S115",
+                     "HF06_QR_M_int_L2_16S_S114", "HF06_QR_M_int_L1_16S_S104",
+                     "BM03_QR_Y_int_PS_L2_16S_S102", "AB_QR_M_1_L_1_16S_S8", 
+                     "HF06_QR_O_edge_L2_16S_S145", "SW08_QR_M_int_L1_16S_S141", 
+                     "HF06_QR_M_int_L3_16S_S153", "BB_QR_O_1_L2_16S_S253", 
+                     "HF04_QR_M_int_L2_16S_S297") 
 } else{
-  print("Error: amplicon trailing argument not recognized. \nOptions: 16S (bacterial) or ITS (fungal)")
+  leaf_outliers <- c("SW08_QR_O_edge_L2_ITS_S66")
 }
+# filter outliers out of data and metadata
+leaf_filter <- leaf_raw[,!colnames(leaf_raw) %in% leaf_outliers]
+leaf_meta_filter <- leaf_meta[!rownames(leaf_meta) %in% leaf_outliers,]
+
+# evaluate whether you have removed all outliers; re-run until you feel you have 
+# removed all outliers in the above lines
+id_outliers_evaluate_seq_depth(leaf_filter, leaf_meta_filter, "leaf", yourname, 
+                               amplicon, date, "outliers_removed")
+
+
+# subset the filtered samples out of the phyloseq
+ps_leaf <- subset_samples(ps_leaf, sample_names(ps_leaf) %in% colnames(leaf_10000))
+
+# ROOT SAMPLES
+setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
+             "/Figures/root"))
+root_raw <- otu_table(ps_root)
+
+# see the data structure before removing outliers
+id_outliers_evaluate_seq_depth(root_raw, root_meta, "root", yourname, 
+                               amplicon, date, "no_outliers_removed") 
+
+# run this step multiple times until you feel you have removed all outliers
+# list outliers to remove
+if(amplicon == "16S"){
+  root_outliers <- c("AA01_QR_Y_edge_R2_16S_S129", "HF06_QR_M_int_R2_16S_S124", 
+                     "JP_QR_Y_pit_R2_16S_S195", "JP_QR_O_pit_R2_16S_S251", 
+                     "HF04_QR_O_int_big_R1_16S_S183", 
+                     "HF06_QR_O_edge_R2_16S_S138", "HF04_QR_Y_edge_R1_16S_S185", 
+                     "HF06_QR_O_edge_R1_16S_S191", "HF06_QR_M_int_R1_16S_S120", 
+                     "HF06_QR_Y_int_R1_16S_S196", 
+                     "HF04_QR_O_int_big_R2_16S_S120", 
+                     "HF069_E3_765_R1_16S_S242")
+} else{
+  root_outliers <- c("BB_QR_O_1_R2_ITS_S129", "AA01_QR_Y_edge_R1_ITS_S80", 
+                     "AA01_QR_Y_edge_R2_ITS_S85")
+}
+# filter outliers out of data and metadata
+root_filter <- root_raw[,!colnames(root_raw) %in% root_outliers]
+root_meta_filter <- root_meta[!rownames(root_meta) %in% root_outliers,]
+
+# evaluate whether you have removed all outliers; re-run until you feel you have 
+# removed all outliers in the above lines
+id_outliers_evaluate_seq_depth(root_filter, root_meta_filter, "root", yourname, 
+                               amplicon, date, "outliers_removed")
+
+# MSOIL SAMPLES
+setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
+             "/Figures/msoil"))
+msoil_raw <- otu_table(ps_msoil)
+
+# see the data structure before removing outliers
+id_outliers_evaluate_seq_depth(msoil_raw, msoil_meta, "msoil", yourname, 
+                               amplicon, date, "no_outliers_removed") 
+
+# run this step multiple times until you feel you have removed all outliers
+# list outliers to remove
+if(amplicon == "16S"){
+  msoil_outliers <- c() 
+} else{
+  msoil_outliers <- c("MC_QR_O_grass_M3_ITS_S97", "HF06_QR_Y_int_M2_ITS_S31",
+                      "BM03_QR_O_int_M2_ITS_S50", "HF04_QR_Y_edge_M3_ITS_S41",
+                      "BM03_QR_Y_int_PS_M2_ITS_S15")
+}
+# filter outliers out of data and metadata
+msoil_filter <- msoil_raw[,!colnames(msoil_raw) %in% msoil_outliers]
+msoil_meta_filter <- msoil_meta[!rownames(msoil_meta) %in% msoil_outliers,]
+
+# evaluate whether you have removed all outliers; re-run until you feel you have 
+# removed all outliers in the above lines
+id_outliers_evaluate_seq_depth(msoil_filter, msoil_meta_filter, "root", 
+                               yourname, amplicon, date, "outliers_removed")
+
+# MSOIL SAMPLES
+setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
+             "/Figures/osoil"))
+osoil_raw <- otu_table(ps_osoil)
+
+# see the data structure before removing outliers
+id_outliers_evaluate_seq_depth(osoil_raw, osoil_meta, "osoil", yourname, 
+                               amplicon, date, "no_outliers_removed") 
+
+# run this step multiple times until you feel you have removed all outliers
+# list outliers to remove
+if(amplicon == "16S"){
+  osoil_outliers <- c("SW08_QR_O_edge_O1_16S_S128", "SW08_QR_M_int_O1_16S_S135",
+                      "HW07_QR_Y_edge_O1_16S_S192", "SB_QR_O_pit_O2_16S_S39")
+} else{
+  osoil_outliers <- c()
+}
+# filter outliers out of data and metadata
+osoil_filter <- osoil_raw[,!colnames(osoil_raw) %in% osoil_outliers]
+osoil_meta_filter <- osoil_meta[!rownames(osoil_meta) %in% osoil_outliers,]
+
+# evaluate whether you have removed all outliers; re-run until you feel you have 
+# removed all outliers in the above lines
+id_outliers_evaluate_seq_depth(osoil_filter, osoil_meta_filter, "root", 
+                               yourname, amplicon, date, "outliers_removed")
