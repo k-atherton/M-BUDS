@@ -1,0 +1,1253 @@
+---
+title: "Street Trees calculate diversity and guilds"
+author: "Kathryn Atherton"
+date: "2024-06-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(geosphere)
+library(vegan)
+library(dplyr)
+```
+
+```{r read in data}
+metadata_16s <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_200.csv")
+
+# leaf_rare_100 <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/leaf_16s_asv_rare_wtax_guild_100.csv", row.names = 1)
+leaf_rare_200 <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/leaf_16s_asv_rare_wtax_guild_200.csv", row.names = 1)
+# leaf_rare_300 <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/leaf_16s_asv_rare_wtax_guild_300.csv", row.names = 1)
+root_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/root_16s_asv_rare_wtax_guild.csv", row.names = 1)
+m_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/m_16s_asv_rare_wtax_guild.csv", row.names = 1)
+o_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/o_16s_asv_rare_wtax_guild.csv", row.names = 1)
+```
+
+```{r calculate distance from Boston}
+# boston_common_lat <- 42.355083
+# boston_common_lon <- -71.065880
+# 
+# metadata_16s$dist_to_boston_km <- distHaversine(c(boston_common_lon, boston_common_lat), cbind(metadata_16s$tree_longitude, metadata_16s$tree_latitude))/1000
+#
+# write.csv(metadata_16s, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s.csv")
+```
+
+```{r calculate leaf guild percent 100}
+leaf_asv_100 <- leaf_rare_100[,8:(ncol(leaf_rare_100)-1)]
+leaf_percent_100 <- leaf_asv_100 / mean(colSums(leaf_asv_100)) * 100
+leaf_guild_aggregate_100 <- aggregate(leaf_percent_100, by = list(leaf_rare_100$guild), FUN = sum, na.rm = F)
+rownames(leaf_guild_aggregate_100) <- leaf_guild_aggregate_100[,1]
+leaf_guild_aggregate_100 <- leaf_guild_aggregate_100[,-1]
+
+# Archaea
+rows <- grep("Archaea", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_archaea <- data.frame(colSums(subset))
+colnames(perc_archaea)[1] <- "perc_archaea"
+
+# C Fixation
+rows <- grep("C fixation", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_c_fixation <- data.frame(colSums(subset))
+colnames(perc_c_fixation)[1] <- "perc_c_fixation"
+
+# Cellulolytic
+rows <- grep("Cellulolytic", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_cellulolytic <- data.frame(colSums(subset))
+colnames(perc_cellulolytic)[1] <- "perc_cellulolytic"
+
+# Chitinolytic
+rows <- grep("Chitinolytic", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_chitinolytic <- data.frame(colSums(subset))
+colnames(perc_chitinolytic)[1] <- "perc_chitinolytic"
+
+# Lignolytic
+rows <- grep("Lignolytic", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_lignolytic <- data.frame(colSums(subset))
+colnames(perc_lignolytic)[1] <- "perc_lignolytic"
+
+# Carbon monoxide oxidation
+rows <- grep("Carbon monoxide oxidation", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_carbon_monoxide_oxidation <- data.frame(colSums(subset))
+colnames(perc_carbon_monoxide_oxidation)[1] <- "perc_carbon_monoxide_oxidation"
+
+# N_fixation
+rows <- grep("N_fixation", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_n_fixation <- data.frame(colSums(subset))
+colnames(perc_n_fixation)[1] <- "perc_n_fixation"
+
+# Copiotroph
+rows <- grep("Copiotroph", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_copiotroph <- data.frame(colSums(subset))
+colnames(perc_copiotroph)[1] <- "perc_copiotroph"
+
+# Denitrification
+rows <- grep("Denitrification", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_denitrification <- data.frame(colSums(subset))
+colnames(perc_denitrification)[1] <- "perc_denitrification"
+
+# Dissim_nitrate_reduction
+rows <- grep("Dissim_nitrate_reduction", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_dissim_nitrate_reduction <- data.frame(colSums(subset))
+colnames(perc_dissim_nitrate_reduction)[1] <- "perc_dissim_nitrate_reduction"
+
+# Hydrocarbon degradation
+rows <- grep("Hydrocarbon degradation", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_hydrocarbon_degradation <- data.frame(colSums(subset))
+colnames(perc_hydrocarbon_degradation)[1] <- "perc_hydrocarbon_degradation"
+
+# Sulfonate desulfurization
+rows <- grep("Sulfonate desulfurization", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_sulfonate_desulfurization <- data.frame(colSums(subset))
+colnames(perc_sulfonate_desulfurization)[1] <- "perc_sulfonate_desulfurization"
+
+# Phosphate solubilization
+rows <- grep("foliar_endophyte", rownames(leaf_guild_aggregate_100))
+subset <- leaf_guild_aggregate_100[rows,]
+perc_phosphate_solubilization <- data.frame(colSums(subset))
+colnames(perc_phosphate_solubilization)[1] <- "perc_phosphate_solubilization"
+
+# Other N-cycling
+rows <- grep("lichen_parasite", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_other_n_cycling <- data.frame(colSums(subset))
+colnames(perc_other_n_cycling)[1] <- "perc_other_n_cycling"
+
+# Other P-cycling
+rows <- grep("Other P-cycling", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_other_p_cycling <- data.frame(colSums(subset))
+colnames(perc_other_p_cycling)[1] <- "perc_other_p_cycling"
+
+# Oxidize reduced sulfur
+rows <- grep("Oxidize reduced sulfur", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_oxidize_reduced_sulfur <- data.frame(colSums(subset))
+colnames(perc_oxidize_reduced_sulfur)[1] <- "perc_oxidize_reduced_sulfur"
+
+# Methanotroph
+rows <- grep("Methanotroph", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_methanotroph <- data.frame(colSums(subset))
+colnames(perc_methanotroph)[1] <- "perc_methanotroph"
+
+# Oligotroph
+rows <- grep("Oligotroph", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_oligotroph <- data.frame(colSums(subset))
+colnames(perc_oligotroph)[1] <- "perc_oligotroph"
+
+# Partial_Nitrification
+rows <- grep("Partial_Nitrification", rownames(leaf_guild_aggregate_100))
+subset <- leaf_guild_aggregate_100[rows,]
+perc_partial_nitrification <- data.frame(colSums(subset))
+colnames(perc_partial_nitrification)[1] <- "perc_partial_nitrification"
+
+result_leaf_100 <- cbind(perc_c_fixation, perc_cellulolytic, perc_chitinolytic, perc_lignolytic, perc_carbon_monoxide_oxidation, perc_n_fixation, perc_copiotroph, perc_denitrification, perc_dissim_nitrate_reduction, perc_hydrocarbon_degradation, perc_sulfonate_desulfurization, perc_phosphate_solubilization, perc_other_n_cycling, perc_other_p_cycling, perc_oxidize_reduced_sulfur, perc_methanotroph, perc_oligotroph, perc_partial_nitrification, perc_archaea)
+```
+
+```{r calculate leaf guild percent 200}
+leaf_asv_200 <- leaf_rare_200[,8:(ncol(leaf_rare_200)-1)]
+leaf_percent_200 <- leaf_asv_200 / mean(colSums(leaf_asv_200)) * 100
+leaf_guild_aggregate_200 <- aggregate(leaf_percent_200, by = list(leaf_rare_200$guild), FUN = sum, na.rm = F)
+rownames(leaf_guild_aggregate_200) <- leaf_guild_aggregate_200[,1]
+leaf_guild_aggregate_200 <- leaf_guild_aggregate_200[,-1]
+
+# Archaea
+rows <- grep("Archaea", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_archaea <- data.frame(colSums(subset))
+colnames(perc_archaea)[1] <- "perc_archaea"
+
+# C Fixation
+rows <- grep("C fixation", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_c_fixation <- data.frame(colSums(subset))
+colnames(perc_c_fixation)[1] <- "perc_c_fixation"
+
+# Cellulolytic
+rows <- grep("Cellulolytic", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_cellulolytic <- data.frame(colSums(subset))
+colnames(perc_cellulolytic)[1] <- "perc_cellulolytic"
+
+# Chitinolytic
+rows <- grep("Chitinolytic", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_chitinolytic <- data.frame(colSums(subset))
+colnames(perc_chitinolytic)[1] <- "perc_chitinolytic"
+
+# Lignolytic
+rows <- grep("Lignolytic", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_lignolytic <- data.frame(colSums(subset))
+colnames(perc_lignolytic)[1] <- "perc_lignolytic"
+
+# Carbon monoxide oxidation
+rows <- grep("Carbon monoxide oxidation", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_carbon_monoxide_oxidation <- data.frame(colSums(subset))
+colnames(perc_carbon_monoxide_oxidation)[1] <- "perc_carbon_monoxide_oxidation"
+
+# N_fixation
+rows <- grep("N_fixation", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_n_fixation <- data.frame(colSums(subset))
+colnames(perc_n_fixation)[1] <- "perc_n_fixation"
+
+# Copiotroph
+rows <- grep("Copiotroph", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_copiotroph <- data.frame(colSums(subset))
+colnames(perc_copiotroph)[1] <- "perc_copiotroph"
+
+# Denitrification
+rows <- grep("Denitrification", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_denitrification <- data.frame(colSums(subset))
+colnames(perc_denitrification)[1] <- "perc_denitrification"
+
+# Dissim_nitrate_reduction
+rows <- grep("Dissim_nitrate_reduction", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_dissim_nitrate_reduction <- data.frame(colSums(subset))
+colnames(perc_dissim_nitrate_reduction)[1] <- "perc_dissim_nitrate_reduction"
+
+# Hydrocarbon degradation
+rows <- grep("Hydrocarbon degradation", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_hydrocarbon_degradation <- data.frame(colSums(subset))
+colnames(perc_hydrocarbon_degradation)[1] <- "perc_hydrocarbon_degradation"
+
+# Sulfonate desulfurization
+rows <- grep("Sulfonate desulfurization", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_sulfonate_desulfurization <- data.frame(colSums(subset))
+colnames(perc_sulfonate_desulfurization)[1] <- "perc_sulfonate_desulfurization"
+
+# Phosphate solubilization
+rows <- grep("foliar_endophyte", rownames(leaf_guild_aggregate_200))
+subset <- leaf_guild_aggregate_200[rows,]
+perc_phosphate_solubilization <- data.frame(colSums(subset))
+colnames(perc_phosphate_solubilization)[1] <- "perc_phosphate_solubilization"
+
+# Other N-cycling
+rows <- grep("lichen_parasite", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_other_n_cycling <- data.frame(colSums(subset))
+colnames(perc_other_n_cycling)[1] <- "perc_other_n_cycling"
+
+# Other P-cycling
+rows <- grep("Other P-cycling", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_other_p_cycling <- data.frame(colSums(subset))
+colnames(perc_other_p_cycling)[1] <- "perc_other_p_cycling"
+
+# Oxidize reduced sulfur
+rows <- grep("Oxidize reduced sulfur", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_oxidize_reduced_sulfur <- data.frame(colSums(subset))
+colnames(perc_oxidize_reduced_sulfur)[1] <- "perc_oxidize_reduced_sulfur"
+
+# Methanotroph
+rows <- grep("Methanotroph", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_methanotroph <- data.frame(colSums(subset))
+colnames(perc_methanotroph)[1] <- "perc_methanotroph"
+
+# Oligotroph
+rows <- grep("Oligotroph", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_oligotroph <- data.frame(colSums(subset))
+colnames(perc_oligotroph)[1] <- "perc_oligotroph"
+
+# Partial_Nitrification
+rows <- grep("Partial_Nitrification", rownames(leaf_guild_aggregate_200))
+subset <- leaf_guild_aggregate_200[rows,]
+perc_partial_nitrification <- data.frame(colSums(subset))
+colnames(perc_partial_nitrification)[1] <- "perc_partial_nitrification"
+
+result_leaf_200 <- cbind(perc_c_fixation, perc_cellulolytic, perc_chitinolytic, perc_lignolytic, perc_carbon_monoxide_oxidation, perc_n_fixation, perc_copiotroph, perc_denitrification, perc_dissim_nitrate_reduction, perc_hydrocarbon_degradation, perc_sulfonate_desulfurization, perc_phosphate_solubilization, perc_other_n_cycling, perc_other_p_cycling, perc_oxidize_reduced_sulfur, perc_methanotroph, perc_oligotroph, perc_partial_nitrification, perc_archaea)
+```
+
+```{r calculate leaf guild percent 300}
+leaf_asv_300 <- leaf_rare_300[,8:(ncol(leaf_rare_300)-1)]
+leaf_percent_300 <- leaf_asv_300 / mean(colSums(leaf_asv_300)) * 100
+leaf_guild_aggregate_300 <- aggregate(leaf_percent_300, by = list(leaf_rare_300$guild), FUN = sum, na.rm = F)
+rownames(leaf_guild_aggregate_300) <- leaf_guild_aggregate_300[,1]
+leaf_guild_aggregate_300 <- leaf_guild_aggregate_300[,-1]
+
+# Archaea
+rows <- grep("Archaea", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_archaea <- data.frame(colSums(subset))
+colnames(perc_archaea)[1] <- "perc_archaea"
+
+# C Fixation
+rows <- grep("C fixation", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_c_fixation <- data.frame(colSums(subset))
+colnames(perc_c_fixation)[1] <- "perc_c_fixation"
+
+# Cellulolytic
+rows <- grep("Cellulolytic", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_cellulolytic <- data.frame(colSums(subset))
+colnames(perc_cellulolytic)[1] <- "perc_cellulolytic"
+
+# Chitinolytic
+rows <- grep("Chitinolytic", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_chitinolytic <- data.frame(colSums(subset))
+colnames(perc_chitinolytic)[1] <- "perc_chitinolytic"
+
+# Lignolytic
+rows <- grep("Lignolytic", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_lignolytic <- data.frame(colSums(subset))
+colnames(perc_lignolytic)[1] <- "perc_lignolytic"
+
+# Carbon monoxide oxidation
+rows <- grep("Carbon monoxide oxidation", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_carbon_monoxide_oxidation <- data.frame(colSums(subset))
+colnames(perc_carbon_monoxide_oxidation)[1] <- "perc_carbon_monoxide_oxidation"
+
+# N_fixation
+rows <- grep("N_fixation", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_n_fixation <- data.frame(colSums(subset))
+colnames(perc_n_fixation)[1] <- "perc_n_fixation"
+
+# Copiotroph
+rows <- grep("Copiotroph", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_copiotroph <- data.frame(colSums(subset))
+colnames(perc_copiotroph)[1] <- "perc_copiotroph"
+
+# Denitrification
+rows <- grep("Denitrification", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_denitrification <- data.frame(colSums(subset))
+colnames(perc_denitrification)[1] <- "perc_denitrification"
+
+# Dissim_nitrate_reduction
+rows <- grep("Dissim_nitrate_reduction", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_dissim_nitrate_reduction <- data.frame(colSums(subset))
+colnames(perc_dissim_nitrate_reduction)[1] <- "perc_dissim_nitrate_reduction"
+
+# Hydrocarbon degradation
+rows <- grep("Hydrocarbon degradation", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_hydrocarbon_degradation <- data.frame(colSums(subset))
+colnames(perc_hydrocarbon_degradation)[1] <- "perc_hydrocarbon_degradation"
+
+# Sulfonate desulfurization
+rows <- grep("Sulfonate desulfurization", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_sulfonate_desulfurization <- data.frame(colSums(subset))
+colnames(perc_sulfonate_desulfurization)[1] <- "perc_sulfonate_desulfurization"
+
+# Phosphate solubilization
+rows <- grep("foliar_endophyte", rownames(leaf_guild_aggregate_300))
+subset <- leaf_guild_aggregate_300[rows,]
+perc_phosphate_solubilization <- data.frame(colSums(subset))
+colnames(perc_phosphate_solubilization)[1] <- "perc_phosphate_solubilization"
+
+# Other N-cycling
+rows <- grep("lichen_parasite", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_other_n_cycling <- data.frame(colSums(subset))
+colnames(perc_other_n_cycling)[1] <- "perc_other_n_cycling"
+
+# Other P-cycling
+rows <- grep("Other P-cycling", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_other_p_cycling <- data.frame(colSums(subset))
+colnames(perc_other_p_cycling)[1] <- "perc_other_p_cycling"
+
+# Oxidize reduced sulfur
+rows <- grep("Oxidize reduced sulfur", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_oxidize_reduced_sulfur <- data.frame(colSums(subset))
+colnames(perc_oxidize_reduced_sulfur)[1] <- "perc_oxidize_reduced_sulfur"
+
+# Methanotroph
+rows <- grep("Methanotroph", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_methanotroph <- data.frame(colSums(subset))
+colnames(perc_methanotroph)[1] <- "perc_methanotroph"
+
+# Oligotroph
+rows <- grep("Oligotroph", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_oligotroph <- data.frame(colSums(subset))
+colnames(perc_oligotroph)[1] <- "perc_oligotroph"
+
+# Partial_Nitrification
+rows <- grep("Partial_Nitrification", rownames(leaf_guild_aggregate_300))
+subset <- leaf_guild_aggregate_300[rows,]
+perc_partial_nitrification <- data.frame(colSums(subset))
+colnames(perc_partial_nitrification)[1] <- "perc_partial_nitrification"
+
+result_leaf_300 <- cbind(perc_c_fixation, perc_cellulolytic, perc_chitinolytic, perc_lignolytic, perc_carbon_monoxide_oxidation, perc_n_fixation, perc_copiotroph, perc_denitrification, perc_dissim_nitrate_reduction, perc_hydrocarbon_degradation, perc_sulfonate_desulfurization, perc_phosphate_solubilization, perc_other_n_cycling, perc_other_p_cycling, perc_oxidize_reduced_sulfur, perc_methanotroph, perc_oligotroph, perc_partial_nitrification, perc_archaea)
+```
+
+```{r calculate root guild percent}
+root_asv <- root_rare[,8:(ncol(root_rare)-1)]
+root_percent <- root_asv / mean(colSums(root_asv)) * 100
+root_guild_aggregate <- aggregate(root_percent, by = list(root_rare$guild), FUN = sum, na.rm = F)
+rownames(root_guild_aggregate) <- root_guild_aggregate[,1]
+root_guild_aggregate <- root_guild_aggregate[,-1]
+
+# Archaea
+rows <- grep("Archaea", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_archaea <- data.frame(colSums(subset))
+colnames(perc_archaea)[1] <- "perc_archaea"
+
+# C Fixation
+rows <- grep("C fixation", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_c_fixation <- data.frame(colSums(subset))
+colnames(perc_c_fixation)[1] <- "perc_c_fixation"
+
+# Cellulolytic
+rows <- grep("Cellulolytic", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_cellulolytic <- data.frame(colSums(subset))
+colnames(perc_cellulolytic)[1] <- "perc_cellulolytic"
+
+# Chitinolytic
+rows <- grep("Chitinolytic", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_chitinolytic <- data.frame(colSums(subset))
+colnames(perc_chitinolytic)[1] <- "perc_chitinolytic"
+
+# Lignolytic
+rows <- grep("Lignolytic", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_lignolytic <- data.frame(colSums(subset))
+colnames(perc_lignolytic)[1] <- "perc_lignolytic"
+
+# Carbon monoxide oxidation
+rows <- grep("Carbon monoxide oxidation", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_carbon_monoxide_oxidation <- data.frame(colSums(subset))
+colnames(perc_carbon_monoxide_oxidation)[1] <- "perc_carbon_monoxide_oxidation"
+
+# N_fixation
+rows <- grep("N_fixation", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_n_fixation <- data.frame(colSums(subset))
+colnames(perc_n_fixation)[1] <- "perc_n_fixation"
+
+# Copiotroph
+rows <- grep("Copiotroph", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_copiotroph <- data.frame(colSums(subset))
+colnames(perc_copiotroph)[1] <- "perc_copiotroph"
+
+# Denitrification
+rows <- grep("Denitrification", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_denitrification <- data.frame(colSums(subset))
+colnames(perc_denitrification)[1] <- "perc_denitrification"
+
+# Dissim_nitrate_reduction
+rows <- grep("Dissim_nitrate_reduction", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_dissim_nitrate_reduction <- data.frame(colSums(subset))
+colnames(perc_dissim_nitrate_reduction)[1] <- "perc_dissim_nitrate_reduction"
+
+# Hydrocarbon degradation
+rows <- grep("Hydrocarbon degradation", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_hydrocarbon_degradation <- data.frame(colSums(subset))
+colnames(perc_hydrocarbon_degradation)[1] <- "perc_hydrocarbon_degradation"
+
+# Sulfonate desulfurization
+rows <- grep("Sulfonate desulfurization", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_sulfonate_desulfurization <- data.frame(colSums(subset))
+colnames(perc_sulfonate_desulfurization)[1] <- "perc_sulfonate_desulfurization"
+
+# Phosphate solubilization
+rows <- grep("foliar_endophyte", rownames(root_guild_aggregate))
+subset <- root_guild_aggregate[rows,]
+perc_phosphate_solubilization <- data.frame(colSums(subset))
+colnames(perc_phosphate_solubilization)[1] <- "perc_phosphate_solubilization"
+
+# Other N-cycling
+rows <- grep("lichen_parasite", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_other_n_cycling <- data.frame(colSums(subset))
+colnames(perc_other_n_cycling)[1] <- "perc_other_n_cycling"
+
+# Other P-cycling
+rows <- grep("Other P-cycling", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_other_p_cycling <- data.frame(colSums(subset))
+colnames(perc_other_p_cycling)[1] <- "perc_other_p_cycling"
+
+# Oxidize reduced sulfur
+rows <- grep("Oxidize reduced sulfur", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_oxidize_reduced_sulfur <- data.frame(colSums(subset))
+colnames(perc_oxidize_reduced_sulfur)[1] <- "perc_oxidize_reduced_sulfur"
+
+# Methanotroph
+rows <- grep("Methanotroph", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_methanotroph <- data.frame(colSums(subset))
+colnames(perc_methanotroph)[1] <- "perc_methanotroph"
+
+# Oligotroph
+rows <- grep("Oligotroph", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_oligotroph <- data.frame(colSums(subset))
+colnames(perc_oligotroph)[1] <- "perc_oligotroph"
+
+# Partial_Nitrification
+rows <- grep("Partial_Nitrification", rownames(root_guild_aggregate))
+subset <- root_guild_aggregate[rows,]
+perc_partial_nitrification <- data.frame(colSums(subset))
+colnames(perc_partial_nitrification)[1] <- "perc_partial_nitrification"
+
+result_root <- cbind(perc_c_fixation, perc_cellulolytic, perc_chitinolytic, perc_lignolytic, perc_carbon_monoxide_oxidation, perc_n_fixation, perc_copiotroph, perc_denitrification, perc_dissim_nitrate_reduction, perc_hydrocarbon_degradation, perc_sulfonate_desulfurization, perc_phosphate_solubilization, perc_other_n_cycling, perc_other_p_cycling, perc_oxidize_reduced_sulfur, perc_methanotroph, perc_oligotroph, perc_partial_nitrification, perc_archaea)
+```
+
+```{r calculate m guild percent}
+m_asv <- m_rare[,8:(ncol(m_rare)-1)]
+m_percent <- m_asv / mean(colSums(m_asv)) * 100
+m_guild_aggregate <- aggregate(m_percent, by = list(m_rare$guild), FUN = sum, na.rm = F)
+rownames(m_guild_aggregate) <- m_guild_aggregate[,1]
+m_guild_aggregate <- m_guild_aggregate[,-1]
+
+# Archaea
+rows <- grep("Archaea", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_archaea <- data.frame(colSums(subset))
+colnames(perc_archaea)[1] <- "perc_archaea"
+
+# C Fixation
+rows <- grep("C fixation", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_c_fixation <- data.frame(colSums(subset))
+colnames(perc_c_fixation)[1] <- "perc_c_fixation"
+
+# Cellulolytic
+rows <- grep("Cellulolytic", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_cellulolytic <- data.frame(colSums(subset))
+colnames(perc_cellulolytic)[1] <- "perc_cellulolytic"
+
+# Chitinolytic
+rows <- grep("Chitinolytic", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_chitinolytic <- data.frame(colSums(subset))
+colnames(perc_chitinolytic)[1] <- "perc_chitinolytic"
+
+# Lignolytic
+rows <- grep("Lignolytic", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_lignolytic <- data.frame(colSums(subset))
+colnames(perc_lignolytic)[1] <- "perc_lignolytic"
+
+# Carbon monoxide oxidation
+rows <- grep("Carbon monoxide oxidation", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_carbon_monoxide_oxidation <- data.frame(colSums(subset))
+colnames(perc_carbon_monoxide_oxidation)[1] <- "perc_carbon_monoxide_oxidation"
+
+# N_fixation
+rows <- grep("N_fixation", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_n_fixation <- data.frame(colSums(subset))
+colnames(perc_n_fixation)[1] <- "perc_n_fixation"
+
+# Copiotroph
+rows <- grep("Copiotroph", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_copiotroph <- data.frame(colSums(subset))
+colnames(perc_copiotroph)[1] <- "perc_copiotroph"
+
+# Denitrification
+rows <- grep("Denitrification", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_denitrification <- data.frame(colSums(subset))
+colnames(perc_denitrification)[1] <- "perc_denitrification"
+
+# Dissim_nitrate_reduction
+rows <- grep("Dissim_nitrate_reduction", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_dissim_nitrate_reduction <- data.frame(colSums(subset))
+colnames(perc_dissim_nitrate_reduction)[1] <- "perc_dissim_nitrate_reduction"
+
+# Hydrocarbon degradation
+rows <- grep("Hydrocarbon degradation", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_hydrocarbon_degradation <- data.frame(colSums(subset))
+colnames(perc_hydrocarbon_degradation)[1] <- "perc_hydrocarbon_degradation"
+
+# Sulfonate desulfurization
+rows <- grep("Sulfonate desulfurization", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_sulfonate_desulfurization <- data.frame(colSums(subset))
+colnames(perc_sulfonate_desulfurization)[1] <- "perc_sulfonate_desulfurization"
+
+# Phosphate solubilization
+rows <- grep("foliar_endophyte", rownames(m_guild_aggregate))
+subset <- m_guild_aggregate[rows,]
+perc_phosphate_solubilization <- data.frame(colSums(subset))
+colnames(perc_phosphate_solubilization)[1] <- "perc_phosphate_solubilization"
+
+# Other N-cycling
+rows <- grep("lichen_parasite", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_other_n_cycling <- data.frame(colSums(subset))
+colnames(perc_other_n_cycling)[1] <- "perc_other_n_cycling"
+
+# Other P-cycling
+rows <- grep("Other P-cycling", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_other_p_cycling <- data.frame(colSums(subset))
+colnames(perc_other_p_cycling)[1] <- "perc_other_p_cycling"
+
+# Oxidize reduced sulfur
+rows <- grep("Oxidize reduced sulfur", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_oxidize_reduced_sulfur <- data.frame(colSums(subset))
+colnames(perc_oxidize_reduced_sulfur)[1] <- "perc_oxidize_reduced_sulfur"
+
+# Methanotroph
+rows <- grep("Methanotroph", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_methanotroph <- data.frame(colSums(subset))
+colnames(perc_methanotroph)[1] <- "perc_methanotroph"
+
+# Oligotroph
+rows <- grep("Oligotroph", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_oligotroph <- data.frame(colSums(subset))
+colnames(perc_oligotroph)[1] <- "perc_oligotroph"
+
+# Partial_Nitrification
+rows <- grep("Partial_Nitrification", rownames(m_guild_aggregate))
+subset <- m_guild_aggregate[rows,]
+perc_partial_nitrification <- data.frame(colSums(subset))
+colnames(perc_partial_nitrification)[1] <- "perc_partial_nitrification"
+
+result_m <- cbind(perc_c_fixation, perc_cellulolytic, perc_chitinolytic, perc_lignolytic, perc_carbon_monoxide_oxidation, perc_n_fixation, perc_copiotroph, perc_denitrification, perc_dissim_nitrate_reduction, perc_hydrocarbon_degradation, perc_sulfonate_desulfurization, perc_phosphate_solubilization, perc_other_n_cycling, perc_other_p_cycling, perc_oxidize_reduced_sulfur, perc_methanotroph, perc_oligotroph, perc_partial_nitrification, perc_archaea)
+```
+
+```{r calculate o guild percent}
+o_asv <- o_rare[,8:(ncol(o_rare)-1)]
+o_percent <- o_asv / mean(colSums(o_asv)) * 100
+o_guild_aggregate <- aggregate(o_percent, by = list(o_rare$guild), FUN = sum, na.rm = F)
+rownames(o_guild_aggregate) <- o_guild_aggregate[,1]
+o_guild_aggregate <- o_guild_aggregate[,-1]
+
+# Archaea
+rows <- grep("Archaea", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_archaea <- data.frame(colSums(subset))
+colnames(perc_archaea)[1] <- "perc_archaea"
+
+# C Fixation
+rows <- grep("C fixation", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_c_fixation <- data.frame(colSums(subset))
+colnames(perc_c_fixation)[1] <- "perc_c_fixation"
+
+# Cellulolytic
+rows <- grep("Cellulolytic", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_cellulolytic <- data.frame(colSums(subset))
+colnames(perc_cellulolytic)[1] <- "perc_cellulolytic"
+
+# Chitinolytic
+rows <- grep("Chitinolytic", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_chitinolytic <- data.frame(colSums(subset))
+colnames(perc_chitinolytic)[1] <- "perc_chitinolytic"
+
+# Lignolytic
+rows <- grep("Lignolytic", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_lignolytic <- data.frame(colSums(subset))
+colnames(perc_lignolytic)[1] <- "perc_lignolytic"
+
+# Carbon monoxide oxidation
+rows <- grep("Carbon monoxide oxidation", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_carbon_monoxide_oxidation <- data.frame(colSums(subset))
+colnames(perc_carbon_monoxide_oxidation)[1] <- "perc_carbon_monoxide_oxidation"
+
+# N_fixation
+rows <- grep("N_fixation", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_n_fixation <- data.frame(colSums(subset))
+colnames(perc_n_fixation)[1] <- "perc_n_fixation"
+
+# Copiotroph
+rows <- grep("Copiotroph", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_copiotroph <- data.frame(colSums(subset))
+colnames(perc_copiotroph)[1] <- "perc_copiotroph"
+
+# Denitrification
+rows <- grep("Denitrification", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_denitrification <- data.frame(colSums(subset))
+colnames(perc_denitrification)[1] <- "perc_denitrification"
+
+# Dissim_nitrate_reduction
+rows <- grep("Dissim_nitrate_reduction", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_dissim_nitrate_reduction <- data.frame(colSums(subset))
+colnames(perc_dissim_nitrate_reduction)[1] <- "perc_dissim_nitrate_reduction"
+
+# Hydrocarbon degradation
+rows <- grep("Hydrocarbon degradation", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_hydrocarbon_degradation <- data.frame(colSums(subset))
+colnames(perc_hydrocarbon_degradation)[1] <- "perc_hydrocarbon_degradation"
+
+# Sulfonate desulfurization
+rows <- grep("Sulfonate desulfurization", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_sulfonate_desulfurization <- data.frame(colSums(subset))
+colnames(perc_sulfonate_desulfurization)[1] <- "perc_sulfonate_desulfurization"
+
+# Phosphate solubilization
+rows <- grep("foliar_endophyte", rownames(o_guild_aggregate))
+subset <- o_guild_aggregate[rows,]
+perc_phosphate_solubilization <- data.frame(colSums(subset))
+colnames(perc_phosphate_solubilization)[1] <- "perc_phosphate_solubilization"
+
+# Other N-cycling
+rows <- grep("lichen_parasite", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_other_n_cycling <- data.frame(colSums(subset))
+colnames(perc_other_n_cycling)[1] <- "perc_other_n_cycling"
+
+# Other P-cycling
+rows <- grep("Other P-cycling", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_other_p_cycling <- data.frame(colSums(subset))
+colnames(perc_other_p_cycling)[1] <- "perc_other_p_cycling"
+
+# Oxidize reduced sulfur
+rows <- grep("Oxidize reduced sulfur", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_oxidize_reduced_sulfur <- data.frame(colSums(subset))
+colnames(perc_oxidize_reduced_sulfur)[1] <- "perc_oxidize_reduced_sulfur"
+
+# Methanotroph
+rows <- grep("Methanotroph", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_methanotroph <- data.frame(colSums(subset))
+colnames(perc_methanotroph)[1] <- "perc_methanotroph"
+
+# Oligotroph
+rows <- grep("Oligotroph", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_oligotroph <- data.frame(colSums(subset))
+colnames(perc_oligotroph)[1] <- "perc_oligotroph"
+
+# Partial_Nitrification
+rows <- grep("Partial_Nitrification", rownames(o_guild_aggregate))
+subset <- o_guild_aggregate[rows,]
+perc_partial_nitrification <- data.frame(colSums(subset))
+colnames(perc_partial_nitrification)[1] <- "perc_partial_nitrification"
+
+result_o <- cbind(perc_c_fixation, perc_cellulolytic, perc_chitinolytic, perc_lignolytic, perc_carbon_monoxide_oxidation, perc_n_fixation, perc_copiotroph, perc_denitrification, perc_dissim_nitrate_reduction, perc_hydrocarbon_degradation, perc_sulfonate_desulfurization, perc_phosphate_solubilization, perc_other_n_cycling, perc_other_p_cycling, perc_oxidize_reduced_sulfur, perc_methanotroph, perc_oligotroph, perc_partial_nitrification, perc_archaea)
+```
+
+```{r record guild info in metadata}
+result_100 <- rbind(result_leaf_100, result_root)
+result_100 <- rbind(result_100, result_m)
+result_100 <- rbind(result_100, result_o)
+result_100$sample_name <- rownames(result_100)
+
+result_200 <- rbind(result_leaf_200, result_root)
+result_200 <- rbind(result_200, result_m)
+result_200 <- rbind(result_200, result_o)
+result_200$sample_name <- rownames(result_200)
+
+result_300 <- rbind(result_leaf_300, result_root)
+result_300 <- rbind(result_300, result_m)
+result_300 <- rbind(result_300, result_o)
+result_300$sample_name <- rownames(result_300)
+
+metadata_16s_guild_100 <- merge(metadata_16s, result_100, by = "sample_name", all.x = TRUE)
+metadata_16s_guild_200 <- merge(metadata_16s, result_200, by = "sample_name", all.x = TRUE)
+metadata_16s_guild_300 <- merge(metadata_16s, result_300, by = "sample_name", all.x = TRUE)
+write.csv(metadata_16s_guild_100, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_100.csv")
+write.csv(metadata_16s_guild_200, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_200.csv")
+write.csv(metadata_16s_guild_300, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_300.csv")
+```
+
+```{r calculate diversity}
+leaf_asv.t_100 <- t(leaf_asv_100)
+leaf_asv.t_200 <- t(leaf_asv_200)
+leaf_asv.t_300 <- t(leaf_asv_300)
+root_asv.t <- t(root_asv)
+m_asv.t <- t(m_asv)
+o_asv.t <- t(o_asv)
+
+shannon <- diversity(leaf_asv.t_100, index="shannon",base=2)
+simpson <- diversity(leaf_asv.t_100, index="simpson")
+invsimpson <- diversity(leaf_asv.t_100, index="invsimpson")
+fisher <- fisher.alpha(leaf_asv.t_100)
+leaf_data_100 <- cbind(shannon, simpson, invsimpson, fisher)
+
+shannon <- diversity(leaf_asv.t_200, index="shannon",base=2)
+simpson <- diversity(leaf_asv.t_200, index="simpson")
+invsimpson <- diversity(leaf_asv.t_200, index="invsimpson")
+fisher <- fisher.alpha(leaf_asv.t_200)
+leaf_data_200 <- cbind(shannon, simpson, invsimpson, fisher)
+
+shannon <- diversity(leaf_asv.t_300, index="shannon",base=2)
+simpson <- diversity(leaf_asv.t_300, index="simpson")
+invsimpson <- diversity(leaf_asv.t_300, index="invsimpson")
+fisher <- fisher.alpha(leaf_asv.t_300)
+leaf_data_300 <- cbind(shannon, simpson, invsimpson, fisher)
+
+shannon <- diversity(root_asv.t, index="shannon",base=2)
+simpson <- diversity(root_asv.t, index="simpson")
+invsimpson <- diversity(root_asv.t, index="invsimpson")
+fisher <- fisher.alpha(root_asv.t)
+root_data <- cbind(shannon, simpson, invsimpson, fisher)
+
+shannon <- diversity(m_asv.t, index="shannon",base=2)
+simpson <- diversity(m_asv.t, index="simpson")
+invsimpson <- diversity(m_asv.t, index="invsimpson")
+fisher <- fisher.alpha(m_asv.t)
+m_data <- cbind(shannon, simpson, invsimpson, fisher)
+
+shannon <- diversity(o_asv.t, index="shannon",base=2)
+simpson <- diversity(o_asv.t, index="simpson")
+invsimpson <- diversity(o_asv.t, index="invsimpson")
+fisher <- fisher.alpha(o_asv.t)
+o_data <- cbind(shannon, simpson, invsimpson, fisher)
+
+diversity_100 <- as.data.frame(rbind(leaf_data_100, root_data, m_data, o_data))
+diversity_100$sample_name <- rownames(diversity_100)
+
+diversity_200 <- as.data.frame(rbind(leaf_data_200, root_data, m_data, o_data))
+diversity_200$sample_name <- rownames(diversity_200)
+
+diversity_300 <- as.data.frame(rbind(leaf_data_300, root_data, m_data, o_data))
+diversity_300$sample_name <- rownames(diversity_300)
+
+metadata_16s_diversity_100 <- merge(metadata_16s_guild_100, diversity_100, by = "sample_name", all.x = T)
+metadata_16s_diversity_200 <- merge(metadata_16s_guild_200, diversity_200, by = "sample_name", all.x = T)
+metadata_16s_diversity_300 <- merge(metadata_16s_guild_300, diversity_300, by = "sample_name", all.x = T)
+
+write.csv(metadata_16s_diversity_100, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_100.csv")
+write.csv(metadata_16s_diversity_200, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_200.csv")
+write.csv(metadata_16s_diversity_300, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_300.csv")
+```
+
+```{r pathogens}
+pathogens <- vroom::vroom("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/MBPD/street_trees_pathogens_data.txt")
+pathogens$row <- rownames(pathogens)
+
+asv_ids <- unique(pathogens$asv_id)
+keep <- c()
+for(i in 1:length(asv_ids)){
+  asv <- asv_ids[i]
+  asv_matches <- pathogens[which(pathogens$asv_id == asv),]
+  perc_id <- max(asv_matches$perc_id)
+  keep <- c(keep, asv_matches$row[which(asv_matches$perc_id == perc_id)])
+}
+
+pathogens <- pathogens[keep,]
+pathogen_tax <- vroom::vroom("/projectnb/talbot-lab-data/Katies_data/Databases/MBPD/pathogen_tax.txt")
+pathogen_tax$path_id <- gsub("\td__Bacteria", "", pathogen_tax$path_id)
+colnames(pathogen_tax)[1] <- "pathogen_id"
+pathogen_tax <- pathogen_tax[,c(1,7,8)]
+
+pathogens <- merge(pathogen_tax, pathogens, by = "pathogen_id", all.y = TRUE)
+pathogens <- pathogens[,c(2:4)]
+pathogens <- distinct(pathogens)
+
+asvs <- unique(pathogens$asv_id)
+pathogens$pathogen_type <- NA
+
+for(i in 1:length(asvs)){
+  asv <- asvs[i]
+  type <- unique(pathogens$type[which(pathogens$asv_id == asv)])
+  pathogens$pathogen_type[which(pathogens$asv_id == asv)] <- paste(type, collapse = " ")
+}
+pathogens <- pathogens[,c(3,4)]
+pathogens <- distinct(pathogens)
+
+taxonomy <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Raw_Data/16S/tax_16s_allruns.csv")
+colnames(taxonomy)[1] <- "asv_id"
+
+taxonomy <- merge(taxonomy, pathogens, all.x = TRUE)
+write.csv(taxonomy, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Raw_Data/16S/tax_16s_allruns_wpathogen.csv")
+
+taxonomy <- taxonomy[,c(1,9)]
+
+leaf_rare_100 <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/leaf_16s_asv_rarefied_wtax_100_asvid.csv", row.names = 1)
+leaf_rare_200 <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/leaf_16s_asv_rarefied_wtax_200_asvid.csv", row.names = 1)
+leaf_rare_300 <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/leaf_16s_asv_rarefied_wtax_300_asvid.csv", row.names = 1)
+root_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/root_16s_asv_rarefied_wtax_asvid.csv", row.names = 1)
+m_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/m_16s_asv_rarefied_wtax_asvid.csv", row.names = 1)
+o_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/o_16s_asv_rarefied_wtax_asvid.csv", row.names = 1)
+
+colnames(leaf_rare_100)[1] <- "asv_id"
+colnames(leaf_rare_200)[1] <- "asv_id"
+colnames(leaf_rare_300)[1] <- "asv_id"
+colnames(root_rare)[1] <- "asv_id"
+colnames(m_rare)[1] <- "asv_id"
+colnames(o_rare)[1] <- "asv_id"
+
+leaf_rare_100_path <- merge(leaf_rare_100, taxonomy, by = "asv_id", all.x = TRUE)
+leaf_rare_200_path <- merge(leaf_rare_200, taxonomy, by = "asv_id", all.x = TRUE)
+leaf_rare_300_path <- merge(leaf_rare_300, taxonomy, by = "asv_id", all.x = TRUE)
+root_rare_path <- merge(root_rare, taxonomy, by = "asv_id", all.x = TRUE)
+m_rare_path <- merge(m_rare, taxonomy, by = "asv_id", all.x = TRUE)
+o_rare_path <- merge(o_rare, taxonomy, by = "asv_id", all.x = TRUE)
+
+leaf_asv_100 <- leaf_rare_100_path[,9:(ncol(leaf_rare_100_path)-1)]
+leaf_percent_100 <- leaf_asv_100 / mean(colSums(leaf_asv_100)) * 100
+leaf_guild_aggregate_100 <- aggregate(leaf_percent_100, by = list(leaf_rare_100_path$pathogen_type), FUN = sum, na.rm = F)
+rownames(leaf_guild_aggregate_100) <- leaf_guild_aggregate_100[,1]
+leaf_guild_aggregate_100 <- leaf_guild_aggregate_100[,-1]
+
+leaf_asv_200 <- leaf_rare_200_path[,9:(ncol(leaf_rare_200_path)-1)]
+leaf_percent_200 <- leaf_asv_200 / mean(colSums(leaf_asv_200)) * 100
+leaf_guild_aggregate_200 <- aggregate(leaf_percent_200, by = list(leaf_rare_200_path$pathogen_type), FUN = sum, na.rm = F)
+rownames(leaf_guild_aggregate_200) <- leaf_guild_aggregate_200[,1]
+leaf_guild_aggregate_200 <- leaf_guild_aggregate_200[,-1]
+
+leaf_asv_300 <- leaf_rare_300_path[,9:(ncol(leaf_rare_300_path)-1)]
+leaf_percent_300 <- leaf_asv_300 / mean(colSums(leaf_asv_300)) * 100
+leaf_guild_aggregate_300 <- aggregate(leaf_percent_300, by = list(leaf_rare_300_path$pathogen_type), FUN = sum, na.rm = F)
+rownames(leaf_guild_aggregate_300) <- leaf_guild_aggregate_300[,1]
+leaf_guild_aggregate_300 <- leaf_guild_aggregate_300[,-1]
+
+root_asv <- root_rare_path[,9:(ncol(root_rare_path)-1)]
+root_percent <- root_asv / mean(colSums(root_asv)) * 100
+root_guild_aggregate <- aggregate(root_percent, by = list(root_rare_path$pathogen_type), FUN = sum, na.rm = F)
+rownames(root_guild_aggregate) <- root_guild_aggregate[,1]
+root_guild_aggregate <- root_guild_aggregate[,-1]
+
+m_asv <- m_rare_path[,9:(ncol(m_rare_path)-1)]
+m_percent <- m_asv / mean(colSums(m_asv)) * 100
+m_guild_aggregate <- aggregate(m_percent, by = list(m_rare_path$pathogen_type), FUN = sum, na.rm = F)
+rownames(m_guild_aggregate) <- m_guild_aggregate[,1]
+m_guild_aggregate <- m_guild_aggregate[,-1]
+
+o_asv <- o_rare_path[,9:(ncol(o_rare_path)-1)]
+o_percent <- o_asv / mean(colSums(o_asv)) * 100
+o_guild_aggregate <- aggregate(o_percent, by = list(o_rare_path$pathogen_type), FUN = sum, na.rm = F)
+rownames(o_guild_aggregate) <- o_guild_aggregate[,1]
+o_guild_aggregate <- o_guild_aggregate[,-1]
+
+# Plant Pathogen
+rows <- grep("t__Plant", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_plant_pathogen <- data.frame(colSums(subset))
+colnames(perc_plant_pathogen)[1] <- "perc_plant_pathogen"
+
+# Animal Pathogen
+rows <- grep("t__Animal", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_animal_pathogen <- data.frame(colSums(subset))
+colnames(perc_animal_pathogen)[1] <- "perc_animal_pathogen"
+
+# Zoonotic Pathogen
+rows <- grep("t__Zoonotic", rownames(leaf_guild_aggregate_100)) 
+subset <- leaf_guild_aggregate_100[rows,]
+perc_zoonotic_pathogen <- data.frame(colSums(subset))
+colnames(perc_zoonotic_pathogen)[1] <- "perc_zoonotic_pathogen"
+
+result_leaf_100 <- cbind(perc_plant_pathogen, perc_animal_pathogen, perc_zoonotic_pathogen)
+
+
+
+# Plant Pathogen
+rows <- grep("t__Plant", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_plant_pathogen <- data.frame(colSums(subset))
+colnames(perc_plant_pathogen)[1] <- "perc_plant_pathogen"
+
+# Animal Pathogen
+rows <- grep("t__Animal", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_animal_pathogen <- data.frame(colSums(subset))
+colnames(perc_animal_pathogen)[1] <- "perc_animal_pathogen"
+
+# Zoonotic Pathogen
+rows <- grep("t__Zoonotic", rownames(leaf_guild_aggregate_200)) 
+subset <- leaf_guild_aggregate_200[rows,]
+perc_zoonotic_pathogen <- data.frame(colSums(subset))
+colnames(perc_zoonotic_pathogen)[1] <- "perc_zoonotic_pathogen"
+
+result_leaf_200 <- cbind(perc_plant_pathogen, perc_animal_pathogen, perc_zoonotic_pathogen)
+
+
+
+
+# Plant Pathogen
+rows <- grep("t__Plant", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_plant_pathogen <- data.frame(colSums(subset))
+colnames(perc_plant_pathogen)[1] <- "perc_plant_pathogen"
+
+# Animal Pathogen
+rows <- grep("t__Animal", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_animal_pathogen <- data.frame(colSums(subset))
+colnames(perc_animal_pathogen)[1] <- "perc_animal_pathogen"
+
+# Zoonotic Pathogen
+rows <- grep("t__Zoonotic", rownames(leaf_guild_aggregate_300)) 
+subset <- leaf_guild_aggregate_300[rows,]
+perc_zoonotic_pathogen <- data.frame(colSums(subset))
+colnames(perc_zoonotic_pathogen)[1] <- "perc_zoonotic_pathogen"
+
+result_leaf_300 <- cbind(perc_plant_pathogen, perc_animal_pathogen, perc_zoonotic_pathogen)
+
+
+
+
+# Plant Pathogen
+rows <- grep("t__Plant", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_plant_pathogen <- data.frame(colSums(subset))
+colnames(perc_plant_pathogen)[1] <- "perc_plant_pathogen"
+
+# Animal Pathogen
+rows <- grep("t__Animal", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_animal_pathogen <- data.frame(colSums(subset))
+colnames(perc_animal_pathogen)[1] <- "perc_animal_pathogen"
+
+# Zoonotic Pathogen
+rows <- grep("t__Zoonotic", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+perc_zoonotic_pathogen <- data.frame(colSums(subset))
+colnames(perc_zoonotic_pathogen)[1] <- "perc_zoonotic_pathogen"
+
+result_root <- cbind(perc_plant_pathogen, perc_animal_pathogen, perc_zoonotic_pathogen)
+
+
+
+# Plant Pathogen
+rows <- grep("t__Plant", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_plant_pathogen <- data.frame(colSums(subset))
+colnames(perc_plant_pathogen)[1] <- "perc_plant_pathogen"
+
+# Animal Pathogen
+rows <- grep("t__Animal", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_animal_pathogen <- data.frame(colSums(subset))
+colnames(perc_animal_pathogen)[1] <- "perc_animal_pathogen"
+
+# Zoonotic Pathogen
+rows <- grep("t__Zoonotic", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+perc_zoonotic_pathogen <- data.frame(colSums(subset))
+colnames(perc_zoonotic_pathogen)[1] <- "perc_zoonotic_pathogen"
+
+result_m <- cbind(perc_plant_pathogen, perc_animal_pathogen, perc_zoonotic_pathogen)
+
+
+
+# Plant Pathogen
+rows <- grep("t__Plant", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_plant_pathogen <- data.frame(colSums(subset))
+colnames(perc_plant_pathogen)[1] <- "perc_plant_pathogen"
+
+# Animal Pathogen
+rows <- grep("t__Animal", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_animal_pathogen <- data.frame(colSums(subset))
+colnames(perc_animal_pathogen)[1] <- "perc_animal_pathogen"
+
+# Zoonotic Pathogen
+rows <- grep("t__Zoonotic", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+perc_zoonotic_pathogen <- data.frame(colSums(subset))
+colnames(perc_zoonotic_pathogen)[1] <- "perc_zoonotic_pathogen"
+
+result_o <- cbind(perc_plant_pathogen, perc_animal_pathogen, perc_zoonotic_pathogen)
+
+
+
+
+result_100 <- rbind(result_leaf_100, result_root)
+result_100 <- rbind(result_100, result_m)
+result_100 <- rbind(result_100, result_o)
+result_100$sample_name <- rownames(result_100)
+
+result_200 <- rbind(result_leaf_200, result_root)
+result_200 <- rbind(result_200, result_m)
+result_200 <- rbind(result_200, result_o)
+result_200$sample_name <- rownames(result_200)
+
+result_300 <- rbind(result_leaf_300, result_root)
+result_300 <- rbind(result_300, result_m)
+result_300 <- rbind(result_300, result_o)
+result_300$sample_name <- rownames(result_300)
+
+metadata_16s_guild_100 <- merge(metadata_16s_guild_100, result_100, by = "sample_name", all.x = TRUE)
+metadata_16s_guild_200 <- merge(metadata_16s_guild_200, result_200, by = "sample_name", all.x = TRUE)
+metadata_16s_guild_300 <- merge(metadata_16s_guild_300, result_300, by = "sample_name", all.x = TRUE)
+write.csv(metadata_16s_guild_100, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_100.csv")
+write.csv(metadata_16s_guild_200, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_200.csv")
+write.csv(metadata_16s_guild_300, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_300.csv")
+```
+
+```{r calculate diversity without pathogens}
+tax_w_paths <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Raw_Data/16S/tax_16s_allruns_wpathogen.csv")
+
+non_pathogens <- tax_w_paths[is.na(tax_w_paths$pathogen_type),]
+
+leaf_rare_200 <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/leaf_16s_asv_rarefied_200.csv", row.names = 1)
+root_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/root_16s_asv_rarefied.csv", row.names = 1)
+m_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/m_16s_asv_rarefied.csv", row.names = 1)
+o_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/16S/o_16s_asv_rarefied.csv", row.names = 1)
+
+leaf_rare_nopath <- leaf_rare_200[which(row.names(leaf_rare_200) %in% non_pathogens$asv_id),]
+root_rare_nopath <- root_rare[which(row.names(root_rare) %in% non_pathogens$asv_id),]
+m_rare_nopath <- m_rare[which(row.names(m_rare) %in% non_pathogens$asv_id),]
+o_rare_nopath <- o_rare[which(row.names(o_rare) %in% non_pathogens$asv_id),]
+
+leaf_asv.t_200 <- t(leaf_rare_nopath)
+root_asv.t <- t(root_rare_nopath)
+m_asv.t <- t(m_rare_nopath)
+o_asv.t <- t(o_rare_nopath)
+
+shannon <- diversity(leaf_asv.t_200, index="shannon",base=2)
+simpson <- diversity(leaf_asv.t_200, index="simpson")
+invsimpson <- diversity(leaf_asv.t_200, index="invsimpson")
+leaf_data_200 <- cbind(shannon, simpson, invsimpson)
+
+shannon <- diversity(root_asv.t, index="shannon",base=2)
+simpson <- diversity(root_asv.t, index="simpson")
+invsimpson <- diversity(root_asv.t, index="invsimpson")
+root_data <- cbind(shannon, simpson, invsimpson)
+
+shannon <- diversity(m_asv.t, index="shannon",base=2)
+simpson <- diversity(m_asv.t, index="simpson")
+invsimpson <- diversity(m_asv.t, index="invsimpson")
+m_data <- cbind(shannon, simpson, invsimpson)
+
+shannon <- diversity(o_asv.t, index="shannon",base=2)
+simpson <- diversity(o_asv.t, index="simpson")
+invsimpson <- diversity(o_asv.t, index="invsimpson")
+o_data <- cbind(shannon, simpson, invsimpson)
+
+diversity_200 <- as.data.frame(rbind(leaf_data_200, root_data, m_data, o_data))
+diversity_200$sample_name <- rownames(diversity_200)
+
+metadata_16s_diversity_200 <- merge(metadata_16s, diversity_200, by = "sample_name", all.x = T)
+colnames(metadata_16s_diversity_200)[114:116] <- c("shannon_nopath", "simpson_nopath", "inverse_simpson_nopath")
+
+write.csv(metadata_16s_diversity_200, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_200_new.csv")
+```
+
+```{r calculate bioinformatics sequence stats for supp methods}
+metadata_real_samples <- metadata_16s[which(metadata_16s$sample_type %in% c("Leaf", "Root", "Soil")),]
+metadata_real_samples <- metadata_16s[!is.na(metadata_16s$sample_name),]
+metadata_leaf <- metadata_real_samples[which(metadata_real_samples$sample_type == "Leaf"),]
+metadata_root <- metadata_real_samples[which(metadata_real_samples$sample_type == "Root"),]
+metadata_m <- metadata_real_samples[which((metadata_real_samples$sample_type == "Soil") & (metadata_real_samples$soil_horizon == "M")),]
+metadata_o <- metadata_real_samples[which((metadata_real_samples$sample_type == "Soil") & (metadata_real_samples$soil_horizon == "O")),]
+
+sum(metadata_real_samples$raw_seq_count)
+sum(metadata_leaf$raw_seq_count)
+sum(metadata_root$raw_seq_count)
+sum(metadata_m$raw_seq_count)
+sum(metadata_o$raw_seq_count)
+
+mean(metadata_real_samples$raw_seq_count)
+mean(metadata_leaf$raw_seq_count)
+mean(metadata_root$raw_seq_count)
+mean(metadata_m$raw_seq_count)
+mean(metadata_o$raw_seq_count)
+
+sd(metadata_real_samples$raw_seq_count)
+sd(metadata_leaf$raw_seq_count)
+sd(metadata_root$raw_seq_count)
+sd(metadata_m$raw_seq_count)
+sd(metadata_o$raw_seq_count)
+
+
+sum(metadata_real_samples$seq_count_dada2)
+sum(metadata_leaf$seq_count_dada2)
+sum(metadata_root$seq_count_dada2)
+sum(metadata_m$seq_count_dada2)
+sum(metadata_o$seq_count_dada2)
+
+mean(metadata_real_samples$seq_count_dada2)
+mean(metadata_leaf$seq_count_dada2)
+mean(metadata_root$seq_count_dada2)
+mean(metadata_m$seq_count_dada2)
+mean(metadata_o$seq_count_dada2)
+
+sd(metadata_real_samples$seq_count_dada2)
+sd(metadata_leaf$seq_count_dada2)
+sd(metadata_root$seq_count_dada2)
+sd(metadata_m$seq_count_dada2)
+sd(metadata_o$seq_count_dada2)
+
+# remove samples that were filtered out due to low reads
+
+
+sum(metadata_real_samples$seq_count_dada2)
+sum(metadata_leaf$seq_count_dada2)
+sum(metadata_root$seq_count_dada2)
+sum(metadata_m$seq_count_dada2)
+sum(metadata_o$seq_count_dada2)
+
+mean(metadata_real_samples$seq_count_dada2)
+mean(metadata_leaf$seq_count_dada2)
+mean(metadata_root$seq_count_dada2)
+mean(metadata_m$seq_count_dada2)
+mean(metadata_o$seq_count_dada2)
+
+sd(metadata_real_samples$seq_count_dada2)
+sd(metadata_leaf$seq_count_dada2)
+sd(metadata_root$seq_count_dada2)
+sd(metadata_m$seq_count_dada2)
+sd(metadata_o$seq_count_dada2)
+
+sum(metadata_real_samples$seq_count_decontam, na.rm = T)
+sum(metadata_leaf$seq_count_decontam)
+sum(metadata_root$seq_count_decontam)
+sum(metadata_m$seq_count_decontam)
+sum(metadata_o$seq_count_decontam)
+
+mean(metadata_real_samples$seq_count_decontam)
+mean(metadata_leaf$seq_count_decontam)
+mean(metadata_root$seq_count_decontam)
+mean(metadata_m$seq_count_decontam)
+mean(metadata_o$seq_count_decontam)
+
+sd(metadata_real_samples$seq_count_decontam)
+sd(metadata_leaf$seq_count_decontam)
+sd(metadata_root$seq_count_decontam)
+sd(metadata_m$seq_count_decontam)
+sd(metadata_o$seq_count_decontam)
+```

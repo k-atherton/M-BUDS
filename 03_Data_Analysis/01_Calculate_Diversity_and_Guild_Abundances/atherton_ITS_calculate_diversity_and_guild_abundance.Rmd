@@ -1,0 +1,1175 @@
+---
+title: "Street Trees calculate diversity and guilds"
+author: "Kathryn Atherton"
+date: "2024-06-02"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(geosphere)
+library(vegan)
+```
+
+```{r read in data}
+metadata_its <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_its.csv")
+metadata_its_new <- metadata_its[,c(1:87)]
+
+leaf_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/ITS/leaf_its_asv_rare_wtax_guild.csv", row.names = 1)
+root_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/ITS/root_its_asv_rare_wtax_guild.csv", row.names = 1)
+m_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/ITS/m_its_asv_rare_wtax_guild.csv", row.names = 1)
+o_rare <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Rarefaction/ITS/o_its_asv_rare_wtax_guild.csv", row.names = 1)
+```
+
+```{r calculate distance from Boston}
+# boston_common_lat <- 42.355083
+# boston_common_lon <- -71.065880
+# 
+# metadata_its$dist_to_boston_km <- distHaversine(c(boston_common_lon, boston_common_lat), cbind(metadata_its$tree_longitude, metadata_its$tree_latitude))/1000
+#
+# write.csv(metadata_its, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_its.csv")
+```
+
+```{r calculate leaf guild percent}
+leaf_asv <- leaf_rare[,11:(ncol(leaf_rare))]
+leaf_percent <- leaf_asv / mean(colSums(leaf_asv)) * 100
+leaf_guild_aggregate <- aggregate(leaf_percent, by = list(leaf_rare$primary_lifestyle), FUN = sum, na.rm = F)
+rownames(leaf_guild_aggregate) <- leaf_guild_aggregate[,1]
+leaf_guild_aggregate <- leaf_guild_aggregate[,-1]
+
+# Algal Ectosymbiont
+rows <- grep("algal_ectosymbiont", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+algal_ecto <- data.frame(colSums(subset))
+colnames(algal_ecto)[1] <- "algal_ecto"
+
+# Algal Parasite
+rows <- grep("algal_parasite", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+algal_para <- data.frame(colSums(subset))
+colnames(algal_para)[1] <- "algal_para"
+
+# Algivorous/Protistivorous
+rows <- grep("algivorous/protistivorous", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+algivorous <- data.frame(colSums(subset))
+colnames(algivorous)[1] <- "algivorous"
+
+# Animal Parasite
+animal_cap <- cbind(leaf_percent, leaf_rare$Animal_biotrophic_capacity_template)
+colnames(animal_cap)[ncol(animal_cap)] <- "Animal_biotrophic_capacity_template"
+animal_cap <- na.omit(animal_cap)
+animal_cap[animal_cap$Animal_biotrophic_capacity_template == "",] <-NA
+animal_cap <- na.omit(animal_cap)
+rows <- grep("parasite", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_parasite <- data.frame(colSums(subset))
+colnames(animal_parasite) [1] <- "Animal_parasite"
+
+rows <- grep(c("animal_parasite", "animal-associated"), animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_pathogen <- data.frame(colSums(subset))
+colnames(animal_pathogen) [1] <- "Animal_associated_pathogen"
+
+rows <- grep(c("animal_endosymbiont"), animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_endosymbiont <- data.frame(colSums(subset))
+colnames(animal_endosymbiont) [1] <- "Animal_endosymbiont"
+
+rows <- grep("human", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+human_pathogen <- data.frame(colSums(subset))
+colnames(human_pathogen) [1] <- "Human_pathogen"
+
+rows <- grep("opportunistic", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+opportunistic_pathogen <- data.frame(colSums(subset))
+colnames(opportunistic_pathogen) [1] <- "Opportunistic_pathogen"
+
+# Arbuscular Mycorrhizal
+rows <- grep("arbuscular_mycorrhizal", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+amf <- data.frame(colSums(subset))
+colnames(amf)[1] <- "amf"
+
+# Arthropod Associated
+rows <- grep("arthropod-associated", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+arthropod <- data.frame(colSums(subset))
+colnames(arthropod)[1] <- "arthropod"
+
+# Bacterivorous
+rows <- grep("bacterivorous", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+bacterivorous <- data.frame(colSums(subset))
+colnames(bacterivorous)[1] <- "bacterivorous"
+
+# Dung Saprotroph
+rows <- grep("dung_saprotroph", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+dung <- data.frame(colSums(subset))
+colnames(dung)[1] <- "dung_sap"
+
+# ECM
+rows <- grep("ectomycorrhizal", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+ECM <- data.frame(colSums(subset))
+colnames(ECM)[1] <- "ECM"
+
+# Epiphyte
+rows <- grep("epiphyte", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+epiphyte <- data.frame(colSums(subset))
+colnames(epiphyte)[1] <- "epiphyte"
+
+# Foliar Endophyte
+rows <- grep("foliar_endophyte", rownames(leaf_guild_aggregate))
+subset <- leaf_guild_aggregate[rows,]
+foliar <- data.frame(colSums(subset))
+colnames(foliar)[1] <- "foliar_endophyte"
+
+# Lichen Parasite
+rows <- grep("lichen_parasite", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+lichen_parasite <- data.frame(colSums(subset))
+colnames(lichen_parasite)[1] <- "lichen_parasite"
+
+# Lichenized
+rows <- grep("lichenized", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+lichenized <- data.frame(colSums(subset))
+colnames(lichenized)[1] <- "lichenized"
+
+# Litter Saprotroph
+rows <- grep("litter_saprotroph", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+litter_sap <- data.frame(colSums(subset))
+colnames(litter_sap)[1] <- "litter_sap"
+
+# Moss Symbiont
+rows <- grep("moss_symbiont", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+moss_symb <- data.frame(colSums(subset))
+colnames(moss_symb)[1] <- "moss_symb"
+
+# Mycoparasite
+rows <- grep("mycoparasite", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+mycoparasite <- data.frame(colSums(subset))
+colnames(mycoparasite)[1] <- "mycoparasite"
+
+# Nectar/Tap Saprotroph
+rows <- grep("nectar/tap_saprotroph", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+nectar_sap <- data.frame(colSums(subset))
+colnames(nectar_sap)[1] <- "nectar_sap"
+
+# Plant Pathogen
+plant_path_cap <- cbind(leaf_percent, leaf_rare$Plant_pathogenic_capacity_template)
+colnames(plant_path_cap)[ncol(plant_path_cap)] <- "Plant_pathogenic_capacity_template"
+plant_path_cap <- na.omit(plant_path_cap)
+plant_path_cap[plant_path_cap$Plant_pathogenic_capacity_template == "",] <-NA
+plant_path_cap <- na.omit(plant_path_cap)
+subset <- plant_path_cap[,-ncol(plant_path_cap)]
+Plant_pathogenic_capacity <- data.frame(colSums (subset))
+colnames(Plant_pathogenic_capacity) [1] <- "Plant_pathogenic_capacity"
+
+rows <- grep("root", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+root_pathogen <- data.frame(colSums(subset))
+colnames(root_pathogen) [1] <- "Root_associated_pathogen"
+
+rows <- grep("leaf", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+leaf_pathogen <- data.frame(colSums(subset))
+colnames(leaf_pathogen) [1] <- "Leaf_fruit_seed_pathogen"
+
+rows <- grep("wood", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+wood_pathogen <- data.frame(colSums(subset))
+colnames(wood_pathogen) [1] <- "Wood_pathogen"
+
+# Pollen Saprotroph
+rows <- grep("pollen_saprotroph", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+pollen_sap <- data.frame(colSums(subset))
+colnames(pollen_sap)[1] <- "pollen_sap"
+
+# Protistan Parasite
+rows <- grep("protistan_parasite", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+protistan <- data.frame(colSums(subset))
+colnames(protistan)[1] <- "protistan"
+
+# Root Endophyte
+rows <- grep("root_endophyte", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+root_endo <- data.frame(colSums(subset))
+colnames(root_endo)[1] <- "root_endo"
+
+# Soil Sapotroph
+rows <- grep("soil_saprotroph", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+soil_sap <- data.frame(colSums(subset))
+colnames(soil_sap)[1] <- "soil_sap"
+
+# Sooty Mold
+rows <- grep("sooty_mold", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+sooty_mold <- data.frame(colSums(subset))
+colnames(sooty_mold)[1] <- "sooty_mold"
+
+# Wood Saprotroph
+rows <- grep("wood_saprotroph", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+wood_sap <- data.frame(colSums(subset))
+colnames(wood_sap)[1] <- "wood_sap"
+
+# Saprotroph
+rows <- grep("saprotroph", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+saps_all <- data.frame(colSums(subset))
+colnames(saps_all)[1] <- "saps_all"
+
+# Pathogens
+rows <- grep("patho", rownames(leaf_guild_aggregate)) 
+subset <- leaf_guild_aggregate[rows,]
+pathos_all <- data.frame(colSums(subset))
+colnames(pathos_all)[1] <- "pathos_all"
+
+# Symbionts 
+rows <- grep(c("symbio"), rownames(leaf_guild_aggregate))
+subset <- leaf_guild_aggregate[rows,]
+symbionts_all <- data.frame(colSums(subset)) + animal_endosymbiont$Animal_endosymbiont
+colnames(symbionts_all)[1] <- "symbionts_all"
+
+result_leaf <- cbind(algal_ecto, algal_para, algivorous, animal_endosymbiont, animal_parasite, amf, arthropod, bacterivorous, dung, ECM, epiphyte, foliar, lichen_parasite, lichenized, litter_sap, moss_symb, mycoparasite, nectar_sap, Plant_pathogenic_capacity, pollen_sap, protistan, root_endo, soil_sap, sooty_mold, wood_sap, saps_all, pathos_all, symbionts_all)
+
+leaf_special <- cbind(animal_pathogen, human_pathogen, opportunistic_pathogen, root_pathogen, leaf_pathogen, wood_pathogen)
+```
+
+```{r calculate root guild percent}
+root_asv <- root_rare[,11:(ncol(root_rare))]
+root_percent <- root_asv / colSums(root_asv) * 100
+root_guild_aggregate <- aggregate(root_percent, by = list(root_rare$primary_lifestyle), FUN = sum, na.rm = F)
+rownames(root_guild_aggregate) <- root_guild_aggregate[,1]
+root_guild_aggregate <- root_guild_aggregate[,-1]
+
+# Algal Ectosymbiont
+rows <- grep("algal_ectosymbiont", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+algal_ecto <- data.frame(colSums(subset))
+colnames(algal_ecto)[1] <- "algal_ecto"
+
+# Algal Parasite
+rows <- grep("algal_parasite", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+algal_para <- data.frame(colSums(subset))
+colnames(algal_para)[1] <- "algal_para"
+
+# Algivorous/Protistivorous
+rows <- grep("algivorous/protistivorous", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+algivorous <- data.frame(colSums(subset))
+colnames(algivorous)[1] <- "algivorous"
+
+# Animal Parasite
+animal_cap <- cbind(root_percent, root_rare$Animal_biotrophic_capacity_template)
+colnames(animal_cap)[ncol(animal_cap)] <- "Animal_biotrophic_capacity_template"
+animal_cap <- na.omit(animal_cap)
+animal_cap[animal_cap$Animal_biotrophic_capacity_template == "",] <-NA
+animal_cap <- na.omit(animal_cap)
+rows <- grep("parasite", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_parasite <- data.frame(colSums(subset))
+colnames(animal_parasite) [1] <- "Animal_parasite"
+
+rows <- grep(c("animal_parasite", "animal-associated"), animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_pathogen <- data.frame(colSums(subset))
+colnames(animal_pathogen) [1] <- "Animal_associated_pathogen"
+
+rows <- grep(c("animal_endosymbiont"), animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_endosymbiont <- data.frame(colSums(subset))
+colnames(animal_endosymbiont) [1] <- "Animal_endosymbiont"
+
+rows <- grep("human", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+human_pathogen <- data.frame(colSums(subset))
+colnames(human_pathogen) [1] <- "Human_pathogen"
+
+rows <- grep("opportunistic", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+opportunistic_pathogen <- data.frame(colSums(subset))
+colnames(opportunistic_pathogen) [1] <- "Opportunistic_pathogen"
+
+# Arbuscular Mycorrhizal
+rows <- grep("arbuscular_mycorrhizal", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+amf <- data.frame(colSums(subset))
+colnames(amf)[1] <- "amf"
+
+# Arthropod Associated
+rows <- grep("arthropod-associated", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+arthropod <- data.frame(colSums(subset))
+colnames(arthropod)[1] <- "arthropod"
+
+# Bacterivorous
+rows <- grep("bacterivorous", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+bacterivorous <- data.frame(colSums(subset))
+colnames(bacterivorous)[1] <- "bacterivorous"
+
+# Dung Saprotroph
+rows <- grep("dung_saprotroph", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+dung <- data.frame(colSums(subset))
+colnames(dung)[1] <- "dung_sap"
+
+# ECM
+rows <- grep("ectomycorrhizal", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+ECM <- data.frame(colSums(subset))
+colnames(ECM)[1] <- "ECM"
+
+# Epiphyte
+rows <- grep("epiphyte", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+epiphyte <- data.frame(colSums(subset))
+colnames(epiphyte)[1] <- "epiphyte"
+
+# Foliar Endophyte
+rows <- grep("foliar_endophyte", rownames(root_guild_aggregate))
+subset <- root_guild_aggregate[rows,]
+foliar <- data.frame(colSums(subset))
+colnames(foliar)[1] <- "foliar_endophyte"
+
+# Lichen Parasite
+rows <- grep("lichen_parasite", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+lichen_parasite <- data.frame(colSums(subset))
+colnames(lichen_parasite)[1] <- "lichen_parasite"
+
+# Lichenized
+rows <- grep("lichenized", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+lichenized <- data.frame(colSums(subset))
+colnames(lichenized)[1] <- "lichenized"
+
+# Litter Saprotroph
+rows <- grep("litter_saprotroph", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+litter_sap <- data.frame(colSums(subset))
+colnames(litter_sap)[1] <- "litter_sap"
+
+# Moss Symbiont
+rows <- grep("moss_symbiont", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+moss_symb <- data.frame(colSums(subset))
+colnames(moss_symb)[1] <- "moss_symb"
+
+# Mycoparasite
+rows <- grep("mycoparasite", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+mycoparasite <- data.frame(colSums(subset))
+colnames(mycoparasite)[1] <- "mycoparasite"
+
+# Nectar/Tap Saprotroph
+rows <- grep("nectar/tap_saprotroph", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+nectar_sap <- data.frame(colSums(subset))
+colnames(nectar_sap)[1] <- "nectar_sap"
+
+# Plant Pathogen
+plant_path_cap <- cbind(root_percent, root_rare$Plant_pathogenic_capacity_template)
+colnames(plant_path_cap)[ncol(plant_path_cap)] <- "Plant_pathogenic_capacity_template"
+plant_path_cap <- na.omit(plant_path_cap)
+plant_path_cap[plant_path_cap$Plant_pathogenic_capacity_template == "",] <-NA
+plant_path_cap <- na.omit(plant_path_cap)
+subset <- plant_path_cap[,-ncol(plant_path_cap)]
+Plant_pathogenic_capacity <- data.frame(colSums (subset))
+colnames(Plant_pathogenic_capacity) [1] <- "Plant_pathogenic_capacity"
+
+rows <- grep("root", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+root_pathogen <- data.frame(colSums(subset))
+colnames(root_pathogen) [1] <- "Root_associated_pathogen"
+
+rows <- grep("leaf", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+leaf_pathogen <- data.frame(colSums(subset))
+colnames(leaf_pathogen) [1] <- "Leaf_fruit_seed_pathogen"
+
+rows <- grep("wood", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+wood_pathogen <- data.frame(colSums(subset))
+colnames(wood_pathogen) [1] <- "Wood_pathogen"
+
+# Pollen Saprotroph
+rows <- grep("pollen_saprotroph", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+pollen_sap <- data.frame(colSums(subset))
+colnames(pollen_sap)[1] <- "pollen_sap"
+
+# Protistan Parasite
+rows <- grep("protistan_parasite", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+protistan <- data.frame(colSums(subset))
+colnames(protistan)[1] <- "protistan"
+
+# Root Endophyte
+rows <- grep("root_endophyte", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+root_endo <- data.frame(colSums(subset))
+colnames(root_endo)[1] <- "root_endo"
+
+# Soil Sapotroph
+rows <- grep("soil_saprotroph", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+soil_sap <- data.frame(colSums(subset))
+colnames(soil_sap)[1] <- "soil_sap"
+
+# Sooty Mold
+rows <- grep("sooty_mold", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+sooty_mold <- data.frame(colSums(subset))
+colnames(sooty_mold)[1] <- "sooty_mold"
+
+# Wood Saprotroph
+rows <- grep("wood_saprotroph", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+wood_sap <- data.frame(colSums(subset))
+colnames(wood_sap)[1] <- "wood_sap"
+
+# Saprotroph
+rows <- grep("saprotroph", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+saps_all <- data.frame(colSums(subset))
+colnames(saps_all)[1] <- "saps_all"
+
+# Pathogens
+rows <- grep("patho", rownames(root_guild_aggregate)) 
+subset <- root_guild_aggregate[rows,]
+pathos_all <- data.frame(colSums(subset))
+colnames(pathos_all)[1] <- "pathos_all"
+
+# Symbionts 
+rows <- grep(c("symbio"), rownames(root_guild_aggregate))
+subset <- root_guild_aggregate[rows,]
+symbionts_all <- data.frame(colSums(subset)) + animal_endosymbiont$Animal_endosymbiont
+colnames(symbionts_all)[1] <- "symbionts_all"
+
+result_root <- cbind(algal_ecto, algal_para, algivorous, animal_endosymbiont, animal_parasite, amf, arthropod, bacterivorous, dung, ECM, epiphyte, foliar, lichen_parasite, lichenized, litter_sap, moss_symb, mycoparasite, nectar_sap, Plant_pathogenic_capacity, pollen_sap, protistan, root_endo, soil_sap, sooty_mold, wood_sap, saps_all, pathos_all, symbionts_all)
+
+root_special <- cbind(animal_pathogen, human_pathogen, opportunistic_pathogen, root_pathogen, leaf_pathogen, wood_pathogen)
+```
+
+```{r calculate m guild percent}
+m_asv <- m_rare[,11:(ncol(m_rare))]
+m_percent <- m_asv / colSums(m_asv) * 100
+m_guild_aggregate <- aggregate(m_percent, by = list(m_rare$primary_lifestyle), FUN = sum, na.rm = F)
+rownames(m_guild_aggregate) <- m_guild_aggregate[,1]
+m_guild_aggregate <- m_guild_aggregate[,-1]
+
+# Algal Ectosymbiont
+rows <- grep("algal_ectosymbiont", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+algal_ecto <- data.frame(colSums(subset))
+colnames(algal_ecto)[1] <- "algal_ecto"
+
+# Algal Parasite
+rows <- grep("algal_parasite", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+algal_para <- data.frame(colSums(subset))
+colnames(algal_para)[1] <- "algal_para"
+
+# Algivorous/Protistivorous
+rows <- grep("algivorous/protistivorous", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+algivorous <- data.frame(colSums(subset))
+colnames(algivorous)[1] <- "algivorous"
+
+# Animal Parasite
+animal_cap <- cbind(m_percent, m_rare$Animal_biotrophic_capacity_template)
+colnames(animal_cap)[ncol(animal_cap)] <- "Animal_biotrophic_capacity_template"
+animal_cap <- na.omit(animal_cap)
+animal_cap[animal_cap$Animal_biotrophic_capacity_template == "",] <-NA
+animal_cap <- na.omit(animal_cap)
+rows <- grep("parasite", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_parasite <- data.frame(colSums(subset))
+colnames(animal_parasite) [1] <- "Animal_parasite"
+
+rows <- grep(c("animal_parasite", "animal-associated"), animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_pathogen <- data.frame(colSums(subset))
+colnames(animal_pathogen) [1] <- "Animal_associated_pathogen"
+
+rows <- grep(c("animal_endosymbiont"), animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_endosymbiont <- data.frame(colSums(subset))
+colnames(animal_endosymbiont) [1] <- "Animal_endosymbiont"
+
+rows <- grep("human", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+human_pathogen <- data.frame(colSums(subset))
+colnames(human_pathogen) [1] <- "Human_pathogen"
+
+rows <- grep("opportunistic", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+opportunistic_pathogen <- data.frame(colSums(subset))
+colnames(opportunistic_pathogen) [1] <- "Opportunistic_pathogen"
+
+# Arbuscular Mycorrhizal
+rows <- grep("arbuscular_mycorrhizal", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+amf <- data.frame(colSums(subset))
+colnames(amf)[1] <- "amf"
+
+# Arthropod Associated
+rows <- grep("arthropod-associated", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+arthropod <- data.frame(colSums(subset))
+colnames(arthropod)[1] <- "arthropod"
+
+# Bacterivorous
+rows <- grep("bacterivorous", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+bacterivorous <- data.frame(colSums(subset))
+colnames(bacterivorous)[1] <- "bacterivorous"
+
+# Dung Saprotroph
+rows <- grep("dung_saprotroph", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+dung <- data.frame(colSums(subset))
+colnames(dung)[1] <- "dung_sap"
+
+# ECM
+rows <- grep("ectomycorrhizal", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+ECM <- data.frame(colSums(subset))
+colnames(ECM)[1] <- "ECM"
+
+# Epiphyte
+rows <- grep("epiphyte", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+epiphyte <- data.frame(colSums(subset))
+colnames(epiphyte)[1] <- "epiphyte"
+
+# Foliar Endophyte
+rows <- grep("foliar_endophyte", rownames(m_guild_aggregate))
+subset <- m_guild_aggregate[rows,]
+foliar <- data.frame(colSums(subset))
+colnames(foliar)[1] <- "foliar_endophyte"
+
+# Lichen Parasite
+rows <- grep("lichen_parasite", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+lichen_parasite <- data.frame(colSums(subset))
+colnames(lichen_parasite)[1] <- "lichen_parasite"
+
+# Lichenized
+rows <- grep("lichenized", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+lichenized <- data.frame(colSums(subset))
+colnames(lichenized)[1] <- "lichenized"
+
+# Litter Saprotroph
+rows <- grep("litter_saprotroph", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+litter_sap <- data.frame(colSums(subset))
+colnames(litter_sap)[1] <- "litter_sap"
+
+# Moss Symbiont
+rows <- grep("moss_symbiont", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+moss_symb <- data.frame(colSums(subset))
+colnames(moss_symb)[1] <- "moss_symb"
+
+# Mycoparasite
+rows <- grep("mycoparasite", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+mycoparasite <- data.frame(colSums(subset))
+colnames(mycoparasite)[1] <- "mycoparasite"
+
+# Nectar/Tap Saprotroph
+rows <- grep("nectar/tap_saprotroph", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+nectar_sap <- data.frame(colSums(subset))
+colnames(nectar_sap)[1] <- "nectar_sap"
+
+# Plant Pathogen
+plant_path_cap <- cbind(m_percent, m_rare$Plant_pathogenic_capacity_template)
+colnames(plant_path_cap)[ncol(plant_path_cap)] <- "Plant_pathogenic_capacity_template"
+plant_path_cap <- na.omit(plant_path_cap)
+plant_path_cap[plant_path_cap$Plant_pathogenic_capacity_template == "",] <-NA
+plant_path_cap <- na.omit(plant_path_cap)
+subset <- plant_path_cap[,-ncol(plant_path_cap)]
+Plant_pathogenic_capacity <- data.frame(colSums (subset))
+colnames(Plant_pathogenic_capacity) [1] <- "Plant_pathogenic_capacity"
+
+rows <- grep("root", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+root_pathogen <- data.frame(colSums(subset))
+colnames(root_pathogen) [1] <- "Root_associated_pathogen"
+
+rows <- grep("leaf", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+leaf_pathogen <- data.frame(colSums(subset))
+colnames(leaf_pathogen) [1] <- "Leaf_fruit_seed_pathogen"
+
+rows <- grep("wood", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+wood_pathogen <- data.frame(colSums(subset))
+colnames(wood_pathogen) [1] <- "Wood_pathogen"
+
+# Pollen Saprotroph
+rows <- grep("pollen_saprotroph", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+pollen_sap <- data.frame(colSums(subset))
+colnames(pollen_sap)[1] <- "pollen_sap"
+
+# Protistan Parasite
+rows <- grep("protistan_parasite", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+protistan <- data.frame(colSums(subset))
+colnames(protistan)[1] <- "protistan"
+
+# Root Endophyte
+rows <- grep("root_endophyte", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+root_endo <- data.frame(colSums(subset))
+colnames(root_endo)[1] <- "root_endo"
+
+# Soil Sapotroph
+rows <- grep("soil_saprotroph", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+soil_sap <- data.frame(colSums(subset))
+colnames(soil_sap)[1] <- "soil_sap"
+
+# Sooty Mold
+rows <- grep("sooty_mold", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+sooty_mold <- data.frame(colSums(subset))
+colnames(sooty_mold)[1] <- "sooty_mold"
+
+# Wood Saprotroph
+rows <- grep("wood_saprotroph", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+wood_sap <- data.frame(colSums(subset))
+colnames(wood_sap)[1] <- "wood_sap"
+
+# Saprotroph
+rows <- grep("saprotroph", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+saps_all <- data.frame(colSums(subset))
+colnames(saps_all)[1] <- "saps_all"
+
+# Pathogens
+rows <- grep("patho", rownames(m_guild_aggregate)) 
+subset <- m_guild_aggregate[rows,]
+pathos_all <- data.frame(colSums(subset))
+colnames(pathos_all)[1] <- "pathos_all"
+
+# Symbionts 
+rows <- grep(c("symbio"), rownames(m_guild_aggregate))
+subset <- m_guild_aggregate[rows,]
+symbionts_all <- data.frame(colSums(subset)) + animal_endosymbiont$Animal_endosymbiont
+colnames(symbionts_all)[1] <- "symbionts_all"
+
+result_m <- cbind(algal_ecto, algal_para, algivorous, animal_endosymbiont, animal_parasite, amf, arthropod, bacterivorous, dung, ECM, epiphyte, foliar, lichen_parasite, lichenized, litter_sap, moss_symb, mycoparasite, nectar_sap, Plant_pathogenic_capacity, pollen_sap, protistan, root_endo, soil_sap, sooty_mold, wood_sap, saps_all, pathos_all, symbionts_all)
+
+m_special <- cbind(animal_pathogen, human_pathogen, opportunistic_pathogen, root_pathogen, leaf_pathogen, wood_pathogen)
+```
+
+```{r calculate o guild percent}
+o_asv <- o_rare[,11:(ncol(o_rare))]
+o_percent <- o_asv / colSums(o_asv) * 100
+o_guild_aggregate <- aggregate(o_percent, by = list(o_rare$primary_lifestyle), FUN = sum, na.rm = F)
+rownames(o_guild_aggregate) <- o_guild_aggregate[,1]
+o_guild_aggregate <- o_guild_aggregate[,-1]
+
+# Algal Ectosymbiont
+rows <- grep("algal_ectosymbiont", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+algal_ecto <- data.frame(colSums(subset))
+colnames(algal_ecto)[1] <- "algal_ecto"
+
+# Algal Parasite
+rows <- grep("algal_parasite", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+algal_para <- data.frame(colSums(subset))
+colnames(algal_para)[1] <- "algal_para"
+
+# Algivorous/Protistivorous
+rows <- grep("algivorous/protistivorous", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+algivorous <- data.frame(colSums(subset))
+colnames(algivorous)[1] <- "algivorous"
+
+# Animal Parasite
+animal_cap <- cbind(o_percent, o_rare$Animal_biotrophic_capacity_template)
+colnames(animal_cap)[ncol(animal_cap)] <- "Animal_biotrophic_capacity_template"
+animal_cap <- na.omit(animal_cap)
+animal_cap[animal_cap$Animal_biotrophic_capacity_template == "",] <-NA
+animal_cap <- na.omit(animal_cap)
+rows <- grep("parasite", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_parasite <- data.frame(colSums(subset))
+colnames(animal_parasite) [1] <- "Animal_parasite"
+
+rows <- grep(c("animal_parasite", "animal-associated"), animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_pathogen <- data.frame(colSums(subset))
+colnames(animal_pathogen) [1] <- "Animal_associated_pathogen"
+
+rows <- grep(c("animal_endosymbiont"), animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+animal_endosymbiont <- data.frame(colSums(subset))
+colnames(animal_endosymbiont) [1] <- "Animal_endosymbiont"
+
+rows <- grep("human", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+human_pathogen <- data.frame(colSums(subset))
+colnames(human_pathogen) [1] <- "Human_pathogen"
+
+rows <- grep("opportunistic", animal_cap$Animal_biotrophic_capacity_template)
+subset <- animal_cap[rows,]
+subset <- subset[,-ncol(subset)]
+opportunistic_pathogen <- data.frame(colSums(subset))
+colnames(opportunistic_pathogen) [1] <- "Opportunistic_pathogen"
+
+# Arbuscular Mycorrhizal
+rows <- grep("arbuscular_mycorrhizal", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+amf <- data.frame(colSums(subset))
+colnames(amf)[1] <- "amf"
+
+# Arthropod Associated
+rows <- grep("arthropod-associated", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+arthropod <- data.frame(colSums(subset))
+colnames(arthropod)[1] <- "arthropod"
+
+# Bacterivorous
+rows <- grep("bacterivorous", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+bacterivorous <- data.frame(colSums(subset))
+colnames(bacterivorous)[1] <- "bacterivorous"
+
+# Dung Saprotroph
+rows <- grep("dung_saprotroph", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+dung <- data.frame(colSums(subset))
+colnames(dung)[1] <- "dung_sap"
+
+# ECM
+rows <- grep("ectomycorrhizal", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+ECM <- data.frame(colSums(subset))
+colnames(ECM)[1] <- "ECM"
+
+# Epiphyte
+rows <- grep("epiphyte", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+epiphyte <- data.frame(colSums(subset))
+colnames(epiphyte)[1] <- "epiphyte"
+
+# Foliar Endophyte
+rows <- grep("foliar_endophyte", rownames(o_guild_aggregate))
+subset <- o_guild_aggregate[rows,]
+foliar <- data.frame(colSums(subset))
+colnames(foliar)[1] <- "foliar_endophyte"
+
+# Lichen Parasite
+rows <- grep("lichen_parasite", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+lichen_parasite <- data.frame(colSums(subset))
+colnames(lichen_parasite)[1] <- "lichen_parasite"
+
+# Lichenized
+rows <- grep("lichenized", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+lichenized <- data.frame(colSums(subset))
+colnames(lichenized)[1] <- "lichenized"
+
+# Litter Saprotroph
+rows <- grep("litter_saprotroph", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+litter_sap <- data.frame(colSums(subset))
+colnames(litter_sap)[1] <- "litter_sap"
+
+# Moss Symbiont
+rows <- grep("moss_symbiont", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+moss_symb <- data.frame(colSums(subset))
+colnames(moss_symb)[1] <- "moss_symb"
+
+# Mycoparasite
+rows <- grep("mycoparasite", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+mycoparasite <- data.frame(colSums(subset))
+colnames(mycoparasite)[1] <- "mycoparasite"
+
+# Nectar/Tap Saprotroph
+rows <- grep("nectar/tap_saprotroph", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+nectar_sap <- data.frame(colSums(subset))
+colnames(nectar_sap)[1] <- "nectar_sap"
+
+# Plant Pathogen
+plant_path_cap <- cbind(o_percent, o_rare$Plant_pathogenic_capacity_template)
+colnames(plant_path_cap)[ncol(plant_path_cap)] <- "Plant_pathogenic_capacity_template"
+plant_path_cap <- na.omit(plant_path_cap)
+plant_path_cap[plant_path_cap$Plant_pathogenic_capacity_template == "",] <-NA
+plant_path_cap <- na.omit(plant_path_cap)
+subset <- plant_path_cap[,-ncol(plant_path_cap)]
+Plant_pathogenic_capacity <- data.frame(colSums (subset))
+colnames(Plant_pathogenic_capacity) [1] <- "Plant_pathogenic_capacity"
+
+rows <- grep("root", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+root_pathogen <- data.frame(colSums(subset))
+colnames(root_pathogen) [1] <- "Root_associated_pathogen"
+
+rows <- grep("leaf", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+leaf_pathogen <- data.frame(colSums(subset))
+colnames(leaf_pathogen) [1] <- "Leaf_fruit_seed_pathogen"
+
+rows <- grep("wood", plant_path_cap$Plant_pathogenic_capacity_template)
+subset <- plant_path_cap[rows,]
+subset <- subset[,-ncol(subset)]
+wood_pathogen <- data.frame(colSums(subset))
+colnames(wood_pathogen) [1] <- "Wood_pathogen"
+
+# Pollen Saprotroph
+rows <- grep("pollen_saprotroph", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+pollen_sap <- data.frame(colSums(subset))
+colnames(pollen_sap)[1] <- "pollen_sap"
+
+# Protistan Parasite
+rows <- grep("protistan_parasite", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+protistan <- data.frame(colSums(subset))
+colnames(protistan)[1] <- "protistan"
+
+# Root Endophyte
+rows <- grep("root_endophyte", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+root_endo <- data.frame(colSums(subset))
+colnames(root_endo)[1] <- "root_endo"
+
+# Soil Sapotroph
+rows <- grep("soil_saprotroph", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+soil_sap <- data.frame(colSums(subset))
+colnames(soil_sap)[1] <- "soil_sap"
+
+# Sooty Mold
+rows <- grep("sooty_mold", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+sooty_mold <- data.frame(colSums(subset))
+colnames(sooty_mold)[1] <- "sooty_mold"
+
+# Wood Saprotroph
+rows <- grep("wood_saprotroph", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+wood_sap <- data.frame(colSums(subset))
+colnames(wood_sap)[1] <- "wood_sap"
+
+# Saprotroph
+rows <- grep("saprotroph", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+saps_all <- data.frame(colSums(subset))
+colnames(saps_all)[1] <- "saps_all"
+
+# Pathogens
+rows <- grep("patho", rownames(o_guild_aggregate)) 
+subset <- o_guild_aggregate[rows,]
+pathos_all <- data.frame(colSums(subset))
+colnames(pathos_all)[1] <- "pathos_all"
+
+# Symbionts 
+rows <- grep(c("symbio"), rownames(o_guild_aggregate))
+subset <- o_guild_aggregate[rows,]
+symbionts_all <- data.frame(colSums(subset)) + animal_endosymbiont$Animal_endosymbiont
+colnames(symbionts_all)[1] <- "symbionts_all"
+
+result_o <- cbind(algal_ecto, algal_para, algivorous, animal_endosymbiont, animal_parasite, amf, arthropod, bacterivorous, dung, ECM, epiphyte, foliar, lichen_parasite, lichenized, litter_sap, moss_symb, mycoparasite, nectar_sap, Plant_pathogenic_capacity, pollen_sap, protistan, root_endo, soil_sap, sooty_mold, wood_sap, saps_all, pathos_all, symbionts_all)
+
+o_special <- cbind(animal_pathogen, human_pathogen, opportunistic_pathogen, root_pathogen, leaf_pathogen, wood_pathogen)
+```
+
+```{r record guild info in metadata}
+result <- rbind(result_leaf, result_root)
+result <- rbind(result, result_m)
+result <- rbind(result, result_o)
+result$sample_name <- rownames(result)
+
+special <- rbind(leaf_special, root_special)
+special <- rbind(special, m_special)
+special <- rbind(special, o_special)
+special$sample_name <- rownames(special)
+
+metadata_its_guild <- merge(metadata_its_new, result, by = "sample_name", all.x = TRUE)
+
+metadata_its_guild <- merge(metadata_its_guild, special, by = "sample_name", all.x = TRUE)
+
+sums <- colSums(metadata_its_guild[,c(88:121)], na.rm = TRUE)
+remove <- names(sums[which(sums == 0)])
+metadata_its_guild <- metadata_its_guild[,-which(colnames(metadata_its_guild) %in% remove)]
+
+colnames(metadata_its_guild)[c(88:117)] <- c("perc_algal_parasite", 
+                                             "perc_animal_endosymbiont",
+                                       "perc_animal_parasite",
+                                       "perc_amf", "perc_arthropod_associated", 
+                                       "perc_dung_saprotroph", "perc_ecm", 
+                                       "perc_epiphyte", "perc_foliar_endophyte", 
+                                       "perc_lichen_parasite", 
+                                       "perc_lichenized", 
+                                       "perc_litter_saprotroph",
+                                       "perc_moss_symbiont", 
+                                       "perc_mycoparasite", 
+                                       "perc_nectar_tap_saprotroph",
+                                       "perc_plant_pathogen", 
+                                       "perc_pollen_saprotroph", 
+                                       "perc_root_endophyte", 
+                                       "perc_soil_saprotroph", 
+                                       "perc_sooty_mold",
+                                       "perc_wood_saprotroph", 
+                                       "perc_all_saprotroph", 
+                                       "perc_all_pathotroph", 
+                                       "perc_all_symbiont", 
+                                       "perc_animal_pathogen", 
+                                       "perc_human_pathogen", 
+                                       "perc_opportunistic_pathogen", 
+                                       "perc_root_associated_pathogen", 
+                                       "perc_leaf_fruit_seed_pathogen", 
+                                       "perc_wood_pathogen")
+
+write.csv(metadata_its_guild, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_its_new.csv")
+```
+
+```{r calculate diversity}
+leaf_asv.t <- t(leaf_asv)
+root_asv.t <- t(root_asv)
+m_asv.t <- t(m_asv)
+o_asv.t <- t(o_asv)
+
+shannon <- diversity(leaf_asv.t, index="shannon",base=2)
+simpson <- diversity(leaf_asv.t, index="simpson")
+invsimpson <- diversity(leaf_asv.t, index="invsimpson")
+fisher <- fisher.alpha(leaf_asv.t)
+leaf_data <- cbind(shannon, simpson, invsimpson, fisher)
+
+shannon <- diversity(root_asv.t, index="shannon",base=2)
+simpson <- diversity(root_asv.t, index="simpson")
+invsimpson <- diversity(root_asv.t, index="invsimpson")
+fisher <- fisher.alpha(root_asv.t)
+root_data <- cbind(shannon, simpson, invsimpson, fisher)
+
+shannon <- diversity(m_asv.t, index="shannon",base=2)
+simpson <- diversity(m_asv.t, index="simpson")
+invsimpson <- diversity(m_asv.t, index="invsimpson")
+fisher <- fisher.alpha(m_asv.t)
+m_data <- cbind(shannon, simpson, invsimpson, fisher)
+
+shannon <- diversity(o_asv.t, index="shannon",base=2)
+simpson <- diversity(o_asv.t, index="simpson")
+invsimpson <- diversity(o_asv.t, index="invsimpson")
+fisher <- fisher.alpha(o_asv.t)
+o_data <- cbind(shannon, simpson, invsimpson, fisher)
+
+diversity <- as.data.frame(rbind(leaf_data, root_data, m_data, o_data))
+diversity$sample_name <- rownames(diversity)
+
+metadata_its_diversity <- merge(metadata_its_guild, diversity, by = "sample_name", all.x = T)
+colnames(metadata_its_diversity[c(118:121)]) <- c("shannon", 
+                                                  "simpson", 
+                                                  "inverse_simpson", 
+                                                  "fisher")
+
+write.csv(metadata_its_diversity, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_its_new.csv")
+```
+
+```{r calculate non-parasite diversity}
+leaf_rare_no_path <- leaf_rare
+leaf_rare_no_path <- leaf_rare_no_path[!grepl("pathogen", leaf_rare_no_path$primary_lifestyle),]
+leaf_rare_no_path <- leaf_rare_no_path[!is.na(leaf_rare_no_path$Plant_pathogenic_capacity_template),]
+leaf_rare_no_path <- leaf_rare_no_path[!grepl("parasite", leaf_rare_no_path$Animal_biotrophic_capacity_template),]
+leaf_asv <- leaf_rare_no_path[,11:251]
+
+root_rare_no_path <- root_rare
+root_rare_no_path <- root_rare_no_path[!grepl("pathogen", root_rare_no_path$primary_lifestyle),]
+root_rare_no_path <- root_rare_no_path[!is.na(root_rare_no_path$Plant_pathogenic_capacity_template),]
+root_rare_no_path <- root_rare_no_path[!grepl("parasite", root_rare_no_path$Animal_biotrophic_capacity_template),]
+root_asv <- root_rare_no_path[,11:98]
+
+m_rare_no_path <- m_rare
+m_rare_no_path <- m_rare_no_path[!grepl("pathogen", m_rare_no_path$primary_lifestyle),]
+m_rare_no_path <- m_rare_no_path[!is.na(m_rare_no_path$Plant_pathogenic_capacity_template),]
+m_rare_no_path <- m_rare_no_path[!grepl("parasite", m_rare_no_path$Animal_biotrophic_capacity_template),]
+m_asv <- m_rare_no_path[,11:225]
+
+o_rare_no_path <- o_rare
+o_rare_no_path <- o_rare_no_path[!grepl("pathogen", o_rare_no_path$primary_lifestyle),]
+o_rare_no_path <- o_rare_no_path[!is.na(o_rare_no_path$Plant_pathogenic_capacity_template),]
+o_rare_no_path <- o_rare_no_path[!grepl("parasite", o_rare_no_path$Animal_biotrophic_capacity_template),]
+o_asv <- o_rare_no_path[,11:253]
+
+leaf_asv.t <- t(leaf_asv)
+root_asv.t <- t(root_asv)
+m_asv.t <- t(m_asv)
+o_asv.t <- t(o_asv)
+
+shannon <- diversity(leaf_asv.t, index="shannon",base=2)
+simpson <- diversity(leaf_asv.t, index="simpson")
+invsimpson <- diversity(leaf_asv.t, index="invsimpson")
+leaf_data <- cbind(shannon, simpson, invsimpson)
+
+shannon <- diversity(root_asv.t, index="shannon",base=2)
+simpson <- diversity(root_asv.t, index="simpson")
+invsimpson <- diversity(root_asv.t, index="invsimpson")
+root_data <- cbind(shannon, simpson, invsimpson)
+
+shannon <- diversity(m_asv.t, index="shannon",base=2)
+simpson <- diversity(m_asv.t, index="simpson")
+invsimpson <- diversity(m_asv.t, index="invsimpson")
+m_data <- cbind(shannon, simpson, invsimpson)
+
+shannon <- diversity(o_asv.t, index="shannon",base=2)
+simpson <- diversity(o_asv.t, index="simpson")
+invsimpson <- diversity(o_asv.t, index="invsimpson")
+o_data <- cbind(shannon, simpson, invsimpson)
+
+diversity <- as.data.frame(rbind(leaf_data, root_data, m_data, o_data))
+diversity$sample_name <- rownames(diversity)
+
+metadata_its_diversity_path <- merge(metadata_its_diversity, diversity, by = "sample_name", all.x = T)
+colnames(metadata_its_diversity_path[c(122:124)]) <- c("shannon_nopath", 
+                                                  "simpson_nopath", 
+                                                  "inverse_simpson_nopath")
+
+write.csv(metadata_its_diversity_path, "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_its_new.csv")
+```
+
+```{r calculate bioinformatics sequence stats for supp methods}
+metadata_real_samples <- metadata_its[which(metadata_its$sample_type %in% c("Leaf", "Root", "Soil")),]
+metadata_real_samples <- metadata_its[!is.na(metadata_its$sample_name),]
+metadata_leaf <- metadata_real_samples[which(metadata_real_samples$sample_type == "Leaf"),]
+metadata_root <- metadata_real_samples[which(metadata_real_samples$sample_type == "Root"),]
+metadata_m <- metadata_real_samples[which((metadata_real_samples$sample_type == "Soil") & (metadata_real_samples$soil_horizon == "M")),]
+metadata_o <- metadata_real_samples[which((metadata_real_samples$sample_type == "Soil") & (metadata_real_samples$soil_horizon == "O")),]
+
+sum(metadata_real_samples$raw_seq_count)
+sum(metadata_leaf$raw_seq_count)
+sum(metadata_root$raw_seq_count)
+sum(metadata_m$raw_seq_count)
+sum(metadata_o$raw_seq_count)
+
+mean(metadata_real_samples$raw_seq_count)
+mean(metadata_leaf$raw_seq_count)
+mean(metadata_root$raw_seq_count)
+mean(metadata_m$raw_seq_count)
+mean(metadata_o$raw_seq_count)
+
+sd(metadata_real_samples$raw_seq_count)
+sd(metadata_leaf$raw_seq_count)
+sd(metadata_root$raw_seq_count)
+sd(metadata_m$raw_seq_count)
+sd(metadata_o$raw_seq_count)
+
+
+sum(metadata_real_samples$seq_count_dada2)
+sum(metadata_leaf$seq_count_dada2)
+sum(metadata_root$seq_count_dada2)
+sum(metadata_m$seq_count_dada2)
+sum(metadata_o$seq_count_dada2)
+
+mean(metadata_real_samples$seq_count_dada2)
+mean(metadata_leaf$seq_count_dada2)
+mean(metadata_root$seq_count_dada2)
+mean(metadata_m$seq_count_dada2)
+mean(metadata_o$seq_count_dada2)
+
+sd(metadata_real_samples$seq_count_dada2)
+sd(metadata_leaf$seq_count_dada2)
+sd(metadata_root$seq_count_dada2)
+sd(metadata_m$seq_count_dada2)
+sd(metadata_o$seq_count_dada2)
+
+# remove samples that were filtered out due to low reads
+
+
+sum(metadata_real_samples$seq_count_dada2)
+sum(metadata_leaf$seq_count_dada2)
+sum(metadata_root$seq_count_dada2)
+sum(metadata_m$seq_count_dada2)
+sum(metadata_o$seq_count_dada2)
+
+mean(metadata_real_samples$seq_count_dada2)
+mean(metadata_leaf$seq_count_dada2)
+mean(metadata_root$seq_count_dada2)
+mean(metadata_m$seq_count_dada2)
+mean(metadata_o$seq_count_dada2)
+
+sd(metadata_real_samples$seq_count_dada2)
+sd(metadata_leaf$seq_count_dada2)
+sd(metadata_root$seq_count_dada2)
+sd(metadata_m$seq_count_dada2)
+sd(metadata_o$seq_count_dada2)
+
+metadata_m <- metadata_m[-which(metadata_m$sample_name %in% ("WR_QR_O_pit_small_M2_ITS_S144")),]
+metadata_real_samples <- metadata_real_samples[-which(metadata_real_samples$sample_name %in% ("WR_QR_O_pit_small_M2_ITS_S144")),]
+
+sum(metadata_real_samples$seq_count_decontam, na.rm = T)
+sum(metadata_leaf$seq_count_decontam)
+sum(metadata_root$seq_count_decontam)
+sum(metadata_m$seq_count_decontam)
+sum(metadata_o$seq_count_decontam)
+
+mean(metadata_real_samples$seq_count_decontam)
+mean(metadata_leaf$seq_count_decontam)
+mean(metadata_root$seq_count_decontam)
+mean(metadata_m$seq_count_decontam)
+mean(metadata_o$seq_count_decontam)
+
+sd(metadata_real_samples$seq_count_decontam)
+sd(metadata_leaf$seq_count_decontam)
+sd(metadata_root$seq_count_decontam)
+sd(metadata_m$seq_count_decontam)
+sd(metadata_o$seq_count_decontam)
+```
