@@ -11,6 +11,13 @@ yourname <- args[1] # user's last name for file storage purposes
 amplicon <- args[2] # options: 16S or ITS
 edit_metadata <- args[3] # options: Y or N
 
+if(is.na(yourname)){
+  yourname <- "atherton"
+}
+if(is.na(edit_metadata)){
+  edit_metadata <- "N"
+}
+
 ### CHECK FOR AMPLICON TYPE ###################################################
 if(amplicon %in% c("16s", "its", "16S", "ITS")){
   if(amplicon %in% c("16s", "16S")){
@@ -135,7 +142,7 @@ if(amplicon %in% c("16s", "its", "16S", "ITS")){
                              Genus == "Escherichia-Shigella", "Escherichia"))
     
     # add taxonomic ranks back to taxon table, 
-    #remove column with ranks as one string
+    # remove column with ranks as one string
     tax <- cbind(tax, tax_table)
     tax <- tax[,-2]
     
@@ -146,10 +153,10 @@ if(amplicon %in% c("16s", "its", "16S", "ITS")){
     
     # write files to csv
     write.csv(data, paste0("02_DADA2_ASV_Tables/", amplicon, "/", yourname,
-                           "_", amplicon, "_ASV_table_allsampletypes_raw_",
+                           "_", amplicon, "_ASV_table_allsampletypes_raw",
                            date,".csv"))
     write.csv(tax,paste0("02_DADA2_ASV_Tables/", amplicon, "/", yourname,
-                         "_", amplicon, "_taxonomy_allsampletypes_raw_",
+                         "_", amplicon, "_taxonomy_allsampletypes_raw",
                          date,".csv"))
     
     ### READ IN SAMPLE METADATA ################################################
@@ -165,6 +172,7 @@ if(amplicon %in% c("16s", "its", "16S", "ITS")){
       ### EDIT SAMPLE METADATA FILE ############################################
       # add is.control column
       metadata$is_control <- FALSE
+      # record negatvie controls as controls in is.control column
       metadata$is_control[which(metadata$sample_type == "Negative Control")] <- 
         TRUE
       
@@ -186,7 +194,7 @@ if(amplicon %in% c("16s", "its", "16S", "ITS")){
     
     ### SEPARATE ASV TABLE BY SAMPLE TYPE ######################################
     setwd(paste0("/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/02_Clean_Data/02_DADA2_ASV_Tables/", 
-                 amplicon, "/"))
+                 amplicon))
     
     # make phyloseq objects
     if(amplicon == "ITS"){
@@ -263,36 +271,34 @@ if(amplicon %in% c("16s", "its", "16S", "ITS")){
     osoil_raw_tax <- as.data.frame(as.matrix(ps_osoil_w_nc@tax_table))
     
     # write to SCC
-    write.csv(leaf_raw, paste0(getwd(), yourname, "_", amplicon, 
-                               "_ASV_table_leaf_raw_", date, ".csv"))
-    write.csv(root_raw, paste0(getwd(), yourname, "_", amplicon, 
-                               "_ASV_table_root_raw_", date, ".csv"))
-    write.csv(msoil_raw, paste0(getwd(), yourname, "_", amplicon, 
-                               "_ASV_table_msoil_raw_", date, ".csv"))
-    write.csv(osoil_raw, paste0(getwd(), yourname, "_", amplicon, 
-                               "_ASV_table_osoil_raw_", date, ".csv"))
-    write.csv(leaf_raw_tax, paste0(getwd(), yourname, "_", 
-                                   amplicon, "_taxonomy_leaf_raw_", date, 
-                                   ".csv"))
-    write.csv(root_raw_tax, paste0(getwd(), yourname, "_", 
-                                   amplicon, 
-                               "_taxonomy_root_raw_", date, ".csv"))
-    write.csv(msoil_raw_tax, paste0(getwd(), yourname, "_", amplicon, 
-                                "_taxonomy_msoil_raw_", date, ".csv"))
-    write.csv(osoil_raw_tax, paste0(getwd(), yourname, "_", amplicon, 
-                                "_taxonomy_osoil_raw_", date, ".csv"))
+    write.csv(leaf_raw, paste0(getwd(), "/", yourname, "_", amplicon, 
+                               "_ASV_table_leaf_raw", date, ".csv"))
+    write.csv(root_raw, paste0(getwd(), "/", yourname, "_", amplicon, 
+                               "_ASV_table_root_raw", date, ".csv"))
+    write.csv(msoil_raw, paste0(getwd(), "/", yourname, "_", amplicon, 
+                               "_ASV_table_msoil_raw", date, ".csv"))
+    write.csv(osoil_raw, paste0(getwd(), "/", yourname, "_", amplicon, 
+                               "_ASV_table_osoil_raw", date, ".csv"))
+    write.csv(leaf_raw_tax, paste0(getwd(), "/", yourname, "_", amplicon, 
+                                   "_taxonomy_leaf_raw", date, ".csv"))
+    write.csv(root_raw_tax, paste0(getwd(), "/", yourname, "_", amplicon, 
+                               "_taxonomy_root_raw", date, ".csv"))
+    write.csv(msoil_raw_tax, paste0(getwd(), "/", yourname, "_", amplicon, 
+                                "_taxonomy_msoil_raw", date, ".csv"))
+    write.csv(osoil_raw_tax, paste0(getwd(), "/", yourname, "_", amplicon, 
+                                "_taxonomy_osoil_raw", date, ".csv"))
     
-    saveRDS(ps_leaf_w_nc, paste0(getwd(), yourname, "_", amplicon, 
-                                 "phyloseq_leaf_raw_withnegcontrols_", date, 
+    saveRDS(ps_leaf_w_nc, paste0(getwd(), "/", yourname, "_", amplicon, 
+                                 "_phyloseq_leaf_raw_withnegcontrols", date, 
                                  ".RDS"))
-    saveRDS(ps_root_w_nc, paste0(getwd(), yourname, "_", amplicon, 
-                                 "phyloseq_root_raw_withnegcontrols_", date, 
+    saveRDS(ps_root_w_nc, paste0(getwd(), "/", yourname, "_", amplicon, 
+                                 "_phyloseq_root_raw_withnegcontrols", date, 
                                  ".RDS"))
-    saveRDS(ps_msoil_w_nc, paste0(getwd(), yourname, "_", amplicon, 
-                                 "phyloseq_msoil_raw_withnegcontrols_", date, 
+    saveRDS(ps_msoil_w_nc, paste0(getwd(), "/", yourname, "_", amplicon, 
+                                 "_phyloseq_msoil_raw_withnegcontrols", date, 
                                  ".RDS"))
-    saveRDS(ps_osoil_w_nc, paste0(getwd(), yourname, "_", amplicon, 
-                                 "phyloseq_osoil_raw_withnegcontrols_", date, 
+    saveRDS(ps_osoil_w_nc, paste0(getwd(), "/", yourname, "_", amplicon, 
+                                 "_phyloseq_osoil_raw_withnegcontrols", date, 
                                  ".RDS"))
     
   } else{

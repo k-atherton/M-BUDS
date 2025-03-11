@@ -21,8 +21,8 @@ if(amplicon %in% c("16s", "its", "16S", "ITS")){
     source("00_functions.R")
     ### READ IN FORMATTED ASV TABLES ###########################################
     setwd(paste0("02_DADA2_ASV_Tables/",amplicon))
-    leaf_raw <- read_in_file(getwd(), paste0(yourname, "_", amplicon, 
-                               "_ASV_table_leaf_raw_"), ".csv")
+    leaf_raw <- readRDS(paste0(yourname, "_", amplicon, 
+                               "phyloseq_leaf_raw_withnegcontrols_"), ".csv")
     root_raw <- read_in_file(getwd(), paste0(yourname, "_", amplicon, 
                                              "_ASV_table_root_raw_"), ".csv")
     msoil_raw <- read_in_file(getwd(), paste0(yourname, "_", amplicon, 

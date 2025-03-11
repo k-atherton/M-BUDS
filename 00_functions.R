@@ -43,14 +43,14 @@ subset_phyloseq <- function(ps_otu, ps_meta, type, nc_list){
     ps_subset <- subset_samples(ps_meta, sample_type == "Leaf") 
   } else if(type == "Root"){
     ps_subset <- subset_samples(ps_meta, sample_type == "Root") 
-  } else if(type == "M Soil"){
+  } else if(type == "MSoil"){
     ps_subset <- subset_samples(ps_meta, (sample_type == "Soil") & (soil_horizon == "M"))
-  } else if(type == "O Soil"){
+  } else if(type == "OSoil"){
     ps_subset <- subset_samples(ps_meta, (sample_type == "Soil") & (soil_horizon == "O"))
   }
   # add negative controls
   nc <- colnames(ps_otu)[grep(paste(nc_list, collapse = "|"), colnames(ps_otu))]
-  ps_nc <- subset_samples(ps_meta, sample_names(ps_meta) %in% nc)
+  ps_nc <- prune_samples(nc, ps_meta)
   ps_subset_w_nc <- merge_phyloseq(ps_subset, ps_nc)
   return(ps_subset_w_nc)
 }
