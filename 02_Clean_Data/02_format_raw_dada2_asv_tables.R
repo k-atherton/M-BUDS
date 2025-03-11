@@ -20,8 +20,9 @@ if(amplicon %in% c("16s", "its", "16S", "ITS")){
   }
   ### CHECK FOR EDITING METADATA ###############################################
   if(edit_metadata %in% c("Y", "N", "y", "n")){
-    setwd("/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/02_Clean_Data")
+    setwd("/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/")
     source("00_functions.R")
+    setwd("/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/02_Clean_Data")
     
     ### READ IN AND FORMAT ASV TABLES ##########################################
     # load sequencing data
@@ -184,7 +185,8 @@ if(amplicon %in% c("16s", "its", "16S", "ITS")){
     }
     
     ### SEPARATE ASV TABLE BY SAMPLE TYPE ######################################
-    setwd("/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/02_Clean_Data")
+    setwd(paste0("/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/02_Clean_Data/02_DADA2_ASV_Tables/", 
+                 amplicon, "/"))
     
     # make phyloseq objects
     if(amplicon == "ITS"){
@@ -261,46 +263,35 @@ if(amplicon %in% c("16s", "its", "16S", "ITS")){
     osoil_raw_tax <- as.data.frame(as.matrix(ps_osoil_w_nc@tax_table))
     
     # write to SCC
-    write.csv(leaf_raw, paste0(getwd(),"/02_DADA2_ASV_Tables/", amplicon, "/", 
-                               yourname, "_", amplicon, 
+    write.csv(leaf_raw, paste0(getwd(), yourname, "_", amplicon, 
                                "_ASV_table_leaf_raw_", date, ".csv"))
-    write.csv(root_raw, paste0(getwd(),"/02_DADA2_ASV_Tables/", amplicon, "/", 
-                               yourname, "_", amplicon, 
+    write.csv(root_raw, paste0(getwd(), yourname, "_", amplicon, 
                                "_ASV_table_root_raw_", date, ".csv"))
-    write.csv(msoil_raw, paste0(getwd(),"/02_DADA2_ASV_Tables/", amplicon, "/", 
-                               yourname, "_", amplicon, 
+    write.csv(msoil_raw, paste0(getwd(), yourname, "_", amplicon, 
                                "_ASV_table_msoil_raw_", date, ".csv"))
-    write.csv(osoil_raw, paste0(getwd(),"/02_DADA2_ASV_Tables/", amplicon, "/", 
-                               yourname, "_", amplicon, 
+    write.csv(osoil_raw, paste0(getwd(), yourname, "_", amplicon, 
                                "_ASV_table_osoil_raw_", date, ".csv"))
-    
-    write.csv(leaf_raw_tax, paste0(getwd(),"/02_DADA2_ASV_Tables/", amplicon, "/", 
-                               yourname, "_", amplicon, 
-                               "_taxonomy_leaf_raw_", date, ".csv"))
-    write.csv(root_raw_tax, paste0(getwd(),"/02_DADA2_ASV_Tables/", amplicon, "/", 
-                               yourname, "_", amplicon, 
+    write.csv(leaf_raw_tax, paste0(getwd(), yourname, "_", 
+                                   amplicon, "_taxonomy_leaf_raw_", date, 
+                                   ".csv"))
+    write.csv(root_raw_tax, paste0(getwd(), yourname, "_", 
+                                   amplicon, 
                                "_taxonomy_root_raw_", date, ".csv"))
-    write.csv(msoil_raw_tax, paste0(getwd(),"/02_DADA2_ASV_Tables/", amplicon, "/", 
-                                yourname, "_", amplicon, 
+    write.csv(msoil_raw_tax, paste0(getwd(), yourname, "_", amplicon, 
                                 "_taxonomy_msoil_raw_", date, ".csv"))
-    write.csv(osoil_raw_tax, paste0(getwd(),"/02_DADA2_ASV_Tables/", amplicon, "/", 
-                                yourname, "_", amplicon, 
+    write.csv(osoil_raw_tax, paste0(getwd(), yourname, "_", amplicon, 
                                 "_taxonomy_osoil_raw_", date, ".csv"))
     
-    saveRDS(ps_leaf_w_nc, paste0(getwd(), "/02_DADA2_ASV_Tables/", amplicon, 
-                                 "/", yourname, "_", amplicon, 
+    saveRDS(ps_leaf_w_nc, paste0(getwd(), yourname, "_", amplicon, 
                                  "phyloseq_leaf_raw_withnegcontrols_", date, 
                                  ".RDS"))
-    saveRDS(ps_root_w_nc, paste0(getwd(), "/02_DADA2_ASV_Tables/", amplicon, 
-                                 "/", yourname, "_", amplicon, 
+    saveRDS(ps_root_w_nc, paste0(getwd(), yourname, "_", amplicon, 
                                  "phyloseq_root_raw_withnegcontrols_", date, 
                                  ".RDS"))
-    saveRDS(ps_msoil_w_nc, paste0(getwd(),"/02_DADA2_ASV_Tables/", amplicon, 
-                                  "/", yourname, "_", amplicon, 
+    saveRDS(ps_msoil_w_nc, paste0(getwd(), yourname, "_", amplicon, 
                                  "phyloseq_msoil_raw_withnegcontrols_", date, 
                                  ".RDS"))
-    saveRDS(ps_osoil_w_nc, paste0(getwd(),"/02_DADA2_ASV_Tables/", amplicon, 
-                                  "/", yourname, "_", amplicon, 
+    saveRDS(ps_osoil_w_nc, paste0(getwd(), yourname, "_", amplicon, 
                                  "phyloseq_osoil_raw_withnegcontrols_", date, 
                                  ".RDS"))
     
