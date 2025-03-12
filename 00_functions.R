@@ -199,64 +199,59 @@ id_outliers_evaluate_seq_depth <- function(data, metadata, sample_type, yourname
 
 test_drop_threshold <- function(data, metadata, sample_type, yourname, 
                                  amplicon, date, threshold){
-  # drop samples < 5000 reads
-  leaf_meta_5000 <- leaf_meta_filter[leaf_meta_filter$seq_count_dada2 > 5000,]
-  leaf_5000 <- leaf_filter[,colnames(leaf_filter) %in% rownames(leaf_meta_5000)]
-  # make a transposed verison of the leaf sequencing data
-  d16s_leaf_t <- as.data.frame(t(leaf_5000))
+  # drop samples < threshold
+  metadata_drop <- metadata[metadata$seq_count_dada2 > threshold,]
+  data_drop <- data[,colnames(data) %in% rownames(metadata_drop)]
   
-  # calculate Aitchison distance for leaf samples
-  aitch_leaf <- aDist(d16s_leaf_t+1, y = NULL) #need to add +1 otherwise all values are NA due to 0s in df
-  aitch_leaf <- as.matrix(aitch_leaf)
+  # make a transposed verison of the sequencing data
+  data_t <- as.data.frame(t(data_drop))
+  
+  # calculate Aitchison distance for samples
+  aitch <- aDist(data_t+1, y = NULL) #need to add +1 otherwise all values are NA due to 0s in df
+  aitch <- as.matrix(aitch)
   
   # test for sequencing batch and depth effect
-  adonis2(aitch_leaf~as.factor(leaf_meta_5000$sequencing_batch))
-  adonis2(aitch_leaf~as.numeric(leaf_meta_5000$seq_count_dada2))
+  print("Testing sequencing batch effect:")
+  print(adonis2(aitch ~ as.factor(metadata_drop$sequencing_batch)))
   
-  all.MDS_leaf<-metaMDS(aitch_leaf,k=2,zerodist="add")
-  leaf.coordinates<-data.frame(scores(all.MDS_leaf))
-  leaf.coordinates <- cbind(leaf.coordinates, leaf_meta_5000)
+  print("Testing sequencing depth effect:")
+  adonis2(aitch ~ as.numeric(metadata_drop$seq_count_dada2))
+  
+  # calculate NMDS
+  all.MDS <- metaMDS(aitch, k=2, zerodist="add")
+  coordinates<-data.frame(scores(all.MDS))
+  coordinates <- cbind(coordinates, metadata_drop)
   
   # plot samples by different variables
-  ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2)) + geom_text(label = rownames(leaf.coordinates), size = 2) + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(sequencing_batch))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(seq_bin))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(tree_type))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(tree_age))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(tree_pit_type))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(tree_species))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(site_name))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
+  by_batch <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2,
+                                      col = as.factor(sequencing_batch))) +
+    geom_point() + stat_ellipse() + theme_bw()
   
-  # drop samples < 10000 reads
-  leaf_meta_10000 <- leaf_meta_filter[leaf_meta_filter$seq_count_dada2 > 10000,]
-  leaf_10000 <- leaf_filter[,colnames(leaf_filter) %in% rownames(leaf_meta_10000)]
-  # # make a transposed verison of the leaf sequencing data
-  # d16s_leaf_t <- as.data.frame(t(leaf_10000))
-  # 
-  # # calculate Aitchison distance for leaf samples
-  # aitch_leaf <- aDist(d16s_leaf_t+1, y = NULL) #need to add +1 otherwise all values are NA due to 0s in df
-  # aitch_leaf <- as.matrix(aitch_leaf)
-  # 
-  # # test for sequencing batch and depth effect
-  # adonis2(aitch_leaf~as.factor(leaf_meta_10000$sequencing_batch))
-  # adonis2(aitch_leaf~as.numeric(leaf_meta_10000$seq_count_dada2))
-  # 
-  # all.MDS_leaf<-metaMDS(aitch_leaf,k=2,zerodist="add")
-  # leaf.coordinates<-data.frame(scores(all.MDS_leaf))
-  # leaf.coordinates <- cbind(leaf.coordinates, leaf_meta_10000)
-  # 
-  # # plot samples by different variables
-  # ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2)) + geom_text(label = rownames(leaf.coordinates), size = 2) + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  # ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(sequencing_batch))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  # ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(seq_bin))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  # ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(tree_type))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  # ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(tree_age))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  # ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(tree_pit_type))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  # ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(tree_species))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
-  # ggplot(leaf.coordinates, aes(x = NMDS1, y = NMDS2, col = as.factor(site_name))) + geom_point() + stat_ellipse() + theme_bw() + ggtitle("Leaf Batch Effect")
+  by_seqdepth <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2,
+                                         col = as.factor(seq_bin))) +
+    geom_point() + stat_ellipse() + theme_bw()
   
-  # write new data to file
-  # #write.csv(leaf_10000, 
-  #           "/projectnb/talbot-lab-data/Katies_data/Street_Trees/Analysis/Data_Cleaning/Filter_Samples/16S/leaf_16s_asv_filtersamples.csv")
+  by_treeage <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2,
+                                        col = as.factor(tree_age))) +
+    geom_point() + stat_ellipse() + theme_bw()
+  
+  by_treepittype <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2,
+                                            col = as.factor(tree_pit_type))) +
+    geom_point() + stat_ellipse() + theme_bw()
+  
+  by_species <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2, 
+                                        col = as.factor(tree_species))) +
+    geom_point() + stat_ellipse() + theme_bw()
+  
+  by_site <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2, 
+                                     col = as.factor(site_name))) +
+    geom_point() + stat_ellipse() + theme_bw()
+  
+  multipanel <- grid.arrange(by_batch, by_seqdepth, by_treeage, by_treepittype, 
+                             by_species, by_site, nrow = 2, ncol = 3)
+  
+  ggsave(paste0(yourname, "_", amplicon, "_", sample_type, 
+                "_NMDS_drop", threshold,"_", date, ".png"), multipanel, 
+         width = 21, height = 10, units = "in", dpi = 300)
   
 }

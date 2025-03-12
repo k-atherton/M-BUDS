@@ -172,7 +172,7 @@ if(edit_metadata %in% c("Y", "y")){
   
   # write this data to the file
   write.csv(metadata, paste0(getwd(), yourname, "_sample_metadata_", 
-                             amplicon, "_", date, ".csv"),
+                             amplicon, date, ".csv"),
             row.names = FALSE)
 }
 

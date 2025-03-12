@@ -59,7 +59,7 @@ plot_prefilter_seq_depth(msoil_meta, "msoil", 8000, date)
 plot_prefilter_seq_depth(osoil_meta, "osoil", 8000, date)
 
 ### DROP OUTLIERS AND SAMPLES WITH TOO FEW READS ##############################
-# LEAF SAMPLES
+### LEAF SAMPLES ##############################################################
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
              "/Figures/leaf"))
 leaf_raw <- otu_table(ps_leaf)
@@ -89,11 +89,24 @@ leaf_meta_filter <- leaf_meta[!rownames(leaf_meta) %in% leaf_outliers,]
 id_outliers_evaluate_seq_depth(leaf_filter, leaf_meta_filter, "leaf", yourname, 
                                amplicon, date, "outliers_removed")
 
+# test different drop thresholds
+test_drop_threshold(leaf_filter, leaf_meta_filter, "leaf", yourname, amplicon, 
+                    date, 5000)
+test_drop_threshold(leaf_filter, leaf_meta_filter, "leaf", yourname, amplicon,
+                    date, 10000)
 
 # subset the filtered samples out of the phyloseq
-ps_leaf <- subset_samples(ps_leaf, sample_names(ps_leaf) %in% colnames(leaf_10000))
+ps_leaf <- subset_samples(ps_leaf, seq_count_dada2 > 10000) # same for ITS and 16S
 
-# ROOT SAMPLES
+# write to file
+setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon))
+write.csv(otu_table(ps_leaf), paste0(yourname, "_", amplicon, 
+                                     "_leaf_ASV_table_filteredsamples", date,
+                                     ".csv"))
+saveRDS(ps_leaf, paste0(yourname, "_", amplicon, 
+                        "leaf_phyloseq_filteredsamples", date, ".RDS"))
+
+### ROOT SAMPLES ##############################################################
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
              "/Figures/root"))
 root_raw <- otu_table(ps_root)
@@ -126,7 +139,29 @@ root_meta_filter <- root_meta[!rownames(root_meta) %in% root_outliers,]
 id_outliers_evaluate_seq_depth(root_filter, root_meta_filter, "root", yourname, 
                                amplicon, date, "outliers_removed")
 
-# MSOIL SAMPLES
+# test different drop thresholds
+test_drop_threshold(root_filter, root_meta_filter, "root", yourname, amplicon, 
+                    date, 5000)
+test_drop_threshold(root_filter, root_meta_filter, "root", yourname, amplicon,
+                    date, 10000)
+
+# subset the filtered samples out of the phyloseq
+if(amplicon == "16S"){
+  ps_root <- subset_samples(ps_root, seq_count_dada2 > 10000)
+} else {
+  ps_root <- subset_samples(ps_root, seq_count_dada2 > 5000)
+}
+
+
+# write to file
+setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon))
+write.csv(otu_table(ps_root), paste0(yourname, "_", amplicon, 
+                                     "_root_ASV_table_filteredsamples", date,
+                                     ".csv"))
+saveRDS(ps_root, paste0(yourname, "_", amplicon, 
+                        "root_phyloseq_filteredsamples", date, ".RDS"))
+
+### MSOIL SAMPLES #############################################################
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
              "/Figures/msoil"))
 msoil_raw <- otu_table(ps_msoil)
@@ -153,7 +188,24 @@ msoil_meta_filter <- msoil_meta[!rownames(msoil_meta) %in% msoil_outliers,]
 id_outliers_evaluate_seq_depth(msoil_filter, msoil_meta_filter, "root", 
                                yourname, amplicon, date, "outliers_removed")
 
-# MSOIL SAMPLES
+# test different drop thresholds
+test_drop_threshold(msoil_filter, msoil_meta_filter, "msoil", yourname, 
+                    amplicon, date, 5000)
+test_drop_threshold(msoil_filter, msoil_meta_filter, "msoil", yourname, 
+                    amplicon, date, 8000)
+
+# subset the filtered samples out of the phyloseq
+ps_msoil <- subset_samples(ps_leaf, seq_count_dada2 > 8000) # same for 16S and ITS
+
+# write to file
+setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon))
+write.csv(otu_table(ps_msoil), paste0(yourname, "_", amplicon, 
+                                      "_msoil_ASV_table_filteredsamples", date,
+                                      ".csv"))
+saveRDS(ps_msoil, paste0(yourname, "_", amplicon,
+                         "msoil_phyloseq_filteredsamples", date, ".RDS"))
+
+### OSOIL SAMPLES #############################################################
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
              "/Figures/osoil"))
 osoil_raw <- otu_table(ps_osoil)
@@ -178,3 +230,69 @@ osoil_meta_filter <- osoil_meta[!rownames(osoil_meta) %in% osoil_outliers,]
 # removed all outliers in the above lines
 id_outliers_evaluate_seq_depth(osoil_filter, osoil_meta_filter, "root", 
                                yourname, amplicon, date, "outliers_removed")
+
+# test different drop thresholds
+test_drop_threshold(osoil_filter, osoil_meta_filter, "osoil", yourname, 
+                    amplicon, date, 5000)
+test_drop_threshold(osoil_filter, osoil_meta_filter, "osoil", yourname, 
+                    amplicon, date, 8000)
+
+# subset the filtered samples out of the phyloseq
+if(amplicon == "16S"){
+  ps_osoil <- subset_samples(ps_osoil, seq_count_dada2 > 8000)
+} else{
+  ps_osoil <- subset_samples(ps_osoil, seq_count_dada2 > 5000)
+}
+
+# write to file
+setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon))
+write.csv(otu_table(ps_osoil), paste0(yourname, "_", amplicon, 
+                                      "_osoil_ASV_table_filteredsamples", date,
+                                      ".csv"))
+saveRDS(ps_osoil, paste0(yourname, "_", amplicon, 
+                         "osoil_phyloseq_filteredsamples", date, ".RDS"))
+
+### WRITE TO METADATA WHETHER SAMPLES WERE DROPPED OR NOT #####################
+if(edit_metadata == "Y"){
+  # read in metadata
+  setwd(paste0(pwd,"01_Collect_Data/01_Sample_Metadata"))
+  metadata <- read_in_file(getwd(), paste0("atherton_sample_metadata_", 
+                                           amplicon, "_"), ".csv")
+  # initialize column
+  metadata$sequences_dropped <- "No"
+  
+  # record NA for samples without sequence data
+  metadata$sequences_dropped[is.na(metadata$sample_name)] <- NA
+  
+  # record outlier for outlier samples
+  metadata$sequences_dropped[metadata$sample_name %in% leaf_outliers] <- "Outlier"
+  metadata$sequences_dropped[metadata$sample_name %in% root_outliers] <- "Outlier"
+  metadata$sequences_dropped[metadata$sample_name %in% msoil_outliers] <- "Outlier"
+  metadata$sequences_dropped[metadata$sample_name %in% osoil_outliers] <- "Outlier"
+  
+  # record filtered out for samples with low sequencing depth
+  metadata$sequences_dropped[metadata$sample_type == "Leaf" & 
+                               metadata$seq_count_dada2 < 10000] <- "Filtered out"
+  if(amplicon == "16S"){
+    metadata$sequences_dropped[metadata$sample_type == "Root" & 
+                                 metadata$seq_count_dada2 < 10000] <- "Filtered out"
+  } else{
+    metadata$sequences_dropped[metadata$sample_type == "Root" & 
+                                 metadata$seq_count_dada2 < 5000] <- "Filtered out"
+  }
+  metadata$sequences_dropped[metadata$sample_type == "Soil" & 
+                               metadata$soil_horizon == "M" & 
+                               metadata$seq_count_dada2 < 8000] <- "Filtered out"
+  if(amplicon == "16S"){
+    metadata$sequences_dropped[metadata$sample_type == "Soil" & 
+                                 metadata$soil_horizon == "O" & 
+                                 metadata$seq_count_dada2 < 8000] <- "Filtered out"
+  } else{
+    metadata$sequences_dropped[metadata$sample_type == "Soil" & 
+                                 metadata$soil_horizon == "O" & 
+                                 metadata$seq_count_dada2 < 5000] <- "Filtered out"
+  }
+  
+  write.csv(metadata, paste0(getwd(), yourname, "_sample_metadata_", 
+                             amplicon, date, ".csv"), row.names = FALSE)
+}
