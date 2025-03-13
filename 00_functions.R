@@ -255,3 +255,130 @@ test_drop_threshold <- function(data, metadata, sample_type, yourname,
          width = 21, height = 10, units = "in", dpi = 300)
   
 }
+
+decontaminate_samples <- function(ps, sample_type, yourname, amplicon, date){
+  # get the batch IDs
+  metadata <- as.data.frame(as.matrix(ps@sam_data))
+  batches <- unique(metadata$sequencing_batch)
+  
+  pre_decontam_pngs <- c()
+  contaminants_pngs <- c()
+  
+  for(i in 1:length(batches)){
+    batch <- batches[i]
+    print(batch)
+    # subset the batch
+    batch_data <- prune_samples(sample_data(ps)$sequencing_batch == batch, ps)
+    meta_batch <- as.data.frame(as.matrix(batch_data@sam_data))
+    
+    # order for rank
+    meta_batch <- meta_batch[order(meta_batch$seq_count_dada2),]
+    meta_batch$index <- seq(nrow(meta_batch))
+    
+    # plot the pre-decontam data
+    pre_decontam_pngs <- c(pre_decontam_pngs, ggplot(meta_batch, 
+                                                     aes(x = index, 
+                                                         y = seq_count_dada2, 
+                                                         color = is_control)) +
+                             geom_point() + theme_bw() + 
+                             ggtitle(paste0(sample_type, " ", batch)))
+    
+    # run decontam
+    if(length(unique(meta_batch$is_control)) > 1){
+      decontam_batch <- isContaminant(batch_data, neg = "is_control", 
+                                      method = "prevalence")
+      
+      # visualize contaminants
+      pa <- transform_sample_counts(batch_data, function(abund) 1*(abund>0))
+      neg <- prune_samples(sample_data(batch_data)$is_control == TRUE, 
+                           batch_data)
+      pos <- prune_samples(sample_data(batch_data)$is_control == FALSE, 
+                           batch_data)
+      df_batch <- data.frame(pos=taxa_sums(pos), neg=taxa_sums(neg), 
+                             contaminant=decontam_batch$contaminant)
+      contaminants_pngs <- c(contaminants_pngs, 
+                             ggplot(df_batch, aes(x= neg, y = pos, 
+                                                  color = contaminant))) +
+        geom_point() + xlab("Prevalence (Negative Controls)") + 
+        ylab("Prevalence (True Samples)") + theme_bw() +
+        ggtitle(paste0(sample_type, " ", batch))
+    } else{
+      decontam_batch <- isContaminant(batch_data, conc = "dna_conc", 
+                                      method = "frequency")
+      
+      # visualize contaminants
+      freq_contaminants <- plot_frequency(batch_data, 
+                                          taxa_names(batch_data)[sample(which(decontam_batch$contaminant),
+                                                                        sum(decontam_batch$contaminant, 
+                                                                            na.rm = TRUE))], 
+                                          conc="dna_conc") + 
+                                          xlab("DNA Concentration")
+      
+      png(filename=paste0("Figures/", sample_type, "/", 
+                          yourname, "_", amplicon, "_", sample_type, "_",
+                          batch, "_decontam_frequencymethod", date, 
+                          ".png"))
+      plot(freq_contaminants)
+      dev.off()
+    }
+    # identify contaminants
+    taxonomy <- as.data.frame(as.matrix(batch_data@tax_table))
+    contaminants <- taxonomy[which(rownames(taxonomy) %in% 
+                                     rownames(decontam_batch)[which(decontam_batch$contaminant == TRUE)]),]
+    
+    # write information to table
+    write.csv(contaminants, paste0("Contaminant_Taxonomy/", sample_type, "/", 
+                                   yourname, "_", amplicon, "_", sample_type, 
+                                   "_", batch, "_contaminants", date, 
+                                   ".csv"))
+    
+    # remove contaminants
+    decontam_data <- prune_taxa(!decontam_batch$contaminant, batch_data)
+    
+    # merge back into one dataset
+    if(i > 1){
+      final_data <- merge_phyloseq(final_data, decontam_data)
+    } else{
+      final_data <- decontam_data
+    }
+  }
+  # save multipanel figures
+  multipanel_pre_decontam <- grid.arrange(pre_decontam_pngs, ncol = 3)
+  multipanel_contaminants <- grid.arrange(contaminants_pngs, ncol = 3)
+  
+  ggsave(paste0("Figures/", sample_type, "/",
+                yourname, "_", amplicon, "_", sample_type, 
+                "_predecontam", date, ".png"), multipanel_pre_decontam, 
+         width = 21, units = "in", dpi = 300)
+  
+  ggsave(paste0("Figures/", sample_type, "/",
+                yourname, "_", amplicon, "_", sample_type, 
+                "_decontam_prevalencemethod", date, ".png"), 
+         multipanel_contaminants, width = 21, units = "in", dpi = 300)
+  
+  # remove negative controls
+  if(sample_type == "leaf"){
+    final_data <- subset_samples(final_data, sample_type == "Leaf")
+  } else if(sample_type == "root"){
+    final_data <- subset_samples(final_data, sample_type == "Root")
+  } else {
+    final_data <- subset_samples(final_data, sample_type == "Soil")
+  }
+  
+  if(amplicon == "16S"){
+    # remove chloroplasts, mitochondria, and anything not a bacteria
+    final_data <- subset_taxa(final_data, Kingdom != "Unassigned")
+    final_data <- subset_taxa(final_data, Kingdom != "d__Eukaryota")
+    final_data <- subset_taxa(final_data, Family != " f__Mitochondria")
+    final_data <- subset_taxa(final_data, Order != " o__Chloroplast")
+  } else{
+    # remove anything not a fungi
+    final_data <- subset_taxa(final_data, Kingdom == "k__Fungi")
+  }
+  
+  # write ASV table to CSV
+  asv_table <- as.data.frame(as.matrix(final_data@otu_table))
+  write.csv(asv_table, paste0(yourname, "_", amplicon, "_", sample_type, 
+                              "ASV_table_decontam", date, ".csv"))
+  return(final_data)
+}

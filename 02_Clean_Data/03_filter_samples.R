@@ -31,6 +31,18 @@ ps_osoil <- read_in_file(getwd(), paste0("atherton_", amplicon,
                                          "_phyloseq_osoil_raw_withnegcontrols_"), 
                          ".RDS")
 
+# Save negative controls 
+ps_leaf_nc <- prune_samples(sample_data(ps_leaf)$is_control == TRUE, ps_leaf)
+ps_root_nc <- prune_samples(sample_data(ps_root)$is_control == TRUE, ps_root)
+ps_msoil_nc <- prune_samples(sample_data(ps_msoil)$is_control == TRUE, ps_msoil)
+ps_osoil_nc <- prune_samples(sample_data(ps_osoil)$is_control == TRUE, ps_osoil)
+
+# Remove negative controls from filtering analysis
+ps_leaf <- prune_samples(sample_data(ps_leaf)$is_control == FALSE, ps_leaf)
+ps_root <- prune_samples(sample_data(ps_root)$is_control == FALSE, ps_root)
+ps_msoil <- prune_samples(sample_data(ps_msoil)$is_control == FALSE, ps_msoil)
+ps_osoil <- prune_samples(sample_data(ps_osoil)$is_control == FALSE, ps_osoil)
+
 # Save the metadata in an object
 leaf_meta <- as.data.frame(as.matrix(ps_leaf@sam_data))
 root_meta <- as.data.frame(as.matrix(ps_root@sam_data))
@@ -106,6 +118,11 @@ write.csv(otu_table(ps_leaf), paste0(yourname, "_", amplicon,
 saveRDS(ps_leaf, paste0(yourname, "_", amplicon, 
                         "_leaf_phyloseq_filteredsamples", date, ".RDS"))
 
+# merge_with_negative_controls
+ps_leaf <- merge_phyloseq(ps_leaf, ps_leaf_nc)
+saveRDS(ps_leaf, paste0(yourname, "_", amplicon, 
+                        "_leaf_phyloseq_filteredsamples_withnc", date, ".RDS"))
+
 ### ROOT SAMPLES ##############################################################
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
              "/Figures/root"))
@@ -161,6 +178,11 @@ write.csv(otu_table(ps_root), paste0(yourname, "_", amplicon,
 saveRDS(ps_root, paste0(yourname, "_", amplicon, 
                         "_root_phyloseq_filteredsamples", date, ".RDS"))
 
+# merge_with_negative_controls
+ps_root <- merge_phyloseq(ps_root, ps_root_nc)
+saveRDS(ps_root, paste0(yourname, "_", amplicon, 
+                        "_root_phyloseq_filteredsamples_withnc", date, ".RDS"))
+
 ### MSOIL SAMPLES #############################################################
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
              "/Figures/msoil"))
@@ -204,6 +226,11 @@ write.csv(otu_table(ps_msoil), paste0(yourname, "_", amplicon,
                                       ".csv"))
 saveRDS(ps_msoil, paste0(yourname, "_", amplicon,
                          "_msoil_phyloseq_filteredsamples", date, ".RDS"))
+
+# merge_with_negative_controls
+ps_msoil <- merge_phyloseq(ps_msoil, ps_msoil_nc)
+saveRDS(ps_msoil, paste0(yourname, "_", amplicon, 
+                        "_msoil_phyloseq_filteredsamples_withnc", date, ".RDS"))
 
 ### OSOIL SAMPLES #############################################################
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
@@ -252,6 +279,11 @@ write.csv(otu_table(ps_osoil), paste0(yourname, "_", amplicon,
 saveRDS(ps_osoil, paste0(yourname, "_", amplicon, 
                          "_osoil_phyloseq_filteredsamples", date, ".RDS"))
 
+# merge_with_negative_controls
+ps_osoil <- merge_phyloseq(ps_osoil, ps_osoil_nc)
+saveRDS(ps_osoil, paste0(yourname, "_", amplicon, 
+                        "_osoil_phyloseq_filteredsamples_withnc", date, ".RDS"))
+
 ### WRITE TO METADATA WHETHER SAMPLES WERE DROPPED OR NOT #####################
 if(edit_metadata == "Y"){
   # read in metadata
@@ -261,8 +293,9 @@ if(edit_metadata == "Y"){
   # initialize column
   metadata$sequences_dropped <- "No"
   
-  # record NA for samples without sequence data
+  # record NA for samples without sequence data and negative controls
   metadata$sequences_dropped[is.na(metadata$sample_name)] <- NA
+  metadata$sequences_dropped[metadata$sample_type = "Negataive Control"] <- NA
   
   # record outlier for outlier samples
   metadata$sequences_dropped[metadata$sample_name %in% leaf_outliers] <- "Outlier"
