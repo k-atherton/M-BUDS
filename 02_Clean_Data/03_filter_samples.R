@@ -16,7 +16,7 @@ edit_metadata <- "N" # options: Y or N
 setwd(pwd)
 source("00_functions.R")
 
-### READ IN FORMATTED ASV TABLES ###########################################
+### READ IN PHYLOSEQ OBJECTS ##################################################
 setwd(paste0("02_Clean_Data/02_DADA2_ASV_Tables/",amplicon))
 ps_leaf <- read_in_file(getwd(), paste0("atherton_", amplicon, 
                                         "_phyloseq_leaf_raw_withnegcontrols_"), 
