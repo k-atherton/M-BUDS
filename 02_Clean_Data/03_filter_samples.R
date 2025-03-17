@@ -9,7 +9,7 @@ library(vegan)
 ### SCRIPT SETUP ##############################################################
 date <- format(Sys.Date(),"_%Y%m%d")
 pwd <- "/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/"
-amplicon <- "ITS" # options: 16S or ITS
+amplicon <- "16S" # options: 16S or ITS
 yourname <- "atherton" # user's last name for file storage purposes
 edit_metadata <- "N" # options: Y or N
 
@@ -217,7 +217,7 @@ test_drop_threshold(msoil_filter, msoil_meta_filter, "msoil", yourname,
                     amplicon, date, 8000)
 
 # subset the filtered samples out of the phyloseq
-ps_msoil <- subset_samples(ps_leaf, seq_count_dada2 > 8000) # same for 16S and ITS
+ps_msoil <- subset_samples(ps_msoil, seq_count_dada2 > 8000) # same for 16S and ITS
 
 # write to file
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon))

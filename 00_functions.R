@@ -259,10 +259,12 @@ test_drop_threshold <- function(data, metadata, sample_type, yourname,
 decontaminate_samples <- function(ps, sample_type, yourname, amplicon, date){
   # get the batch IDs
   metadata <- as.data.frame(as.matrix(ps@sam_data))
-  batches <- unique(metadata$sequencing_batch)
+  batches <- unique(metadata$sequencing_batch[which(metadata$sample_type != "Negative Control")])
   
-  pre_decontam_pngs <- c()
-  contaminants_pngs <- c()
+  pre_decontam_pngs <- list()
+  contaminants_pngs <- list()
+  
+  j <- 1
   
   for(i in 1:length(batches)){
     batch <- batches[i]
@@ -276,12 +278,11 @@ decontaminate_samples <- function(ps, sample_type, yourname, amplicon, date){
     meta_batch$index <- seq(nrow(meta_batch))
     
     # plot the pre-decontam data
-    pre_decontam_pngs <- c(pre_decontam_pngs, ggplot(meta_batch, 
-                                                     aes(x = index, 
-                                                         y = seq_count_dada2, 
-                                                         color = is_control)) +
+    pre_decontam_pngs[[i]] <- ggplot(meta_batch, aes(x = index, 
+                                                     y = as.numeric(seq_count_dada2), 
+                                                     color = is_control)) +
                              geom_point() + theme_bw() + 
-                             ggtitle(paste0(sample_type, " ", batch)))
+                             ggtitle(paste0(sample_type, " ", batch))
     
     # run decontam
     if(length(unique(meta_batch$is_control)) > 1){
@@ -296,12 +297,13 @@ decontaminate_samples <- function(ps, sample_type, yourname, amplicon, date){
                            batch_data)
       df_batch <- data.frame(pos=taxa_sums(pos), neg=taxa_sums(neg), 
                              contaminant=decontam_batch$contaminant)
-      contaminants_pngs <- c(contaminants_pngs, 
-                             ggplot(df_batch, aes(x= neg, y = pos, 
-                                                  color = contaminant))) +
+      contaminants_pngs[[j]] <- ggplot(df_batch, aes(x= neg, y = pos, 
+                                                     color = contaminant)) +
         geom_point() + xlab("Prevalence (Negative Controls)") + 
         ylab("Prevalence (True Samples)") + theme_bw() +
         ggtitle(paste0(sample_type, " ", batch))
+      
+      j <- j + 1
     } else{
       decontam_batch <- isContaminant(batch_data, conc = "dna_conc", 
                                       method = "frequency")
@@ -343,18 +345,19 @@ decontaminate_samples <- function(ps, sample_type, yourname, amplicon, date){
     }
   }
   # save multipanel figures
-  multipanel_pre_decontam <- grid.arrange(pre_decontam_pngs, ncol = 3)
-  multipanel_contaminants <- grid.arrange(contaminants_pngs, ncol = 3)
+  multipanel_pre_decontam <- do.call(grid.arrange, pre_decontam_pngs)
+  multipanel_contaminants <- do.call(grid.arrange, contaminants_pngs)
   
   ggsave(paste0("Figures/", sample_type, "/",
                 yourname, "_", amplicon, "_", sample_type, 
                 "_predecontam", date, ".png"), multipanel_pre_decontam, 
-         width = 21, units = "in", dpi = 300)
+         width = 21, height = 10, units = "in", dpi = 300)
   
   ggsave(paste0("Figures/", sample_type, "/",
                 yourname, "_", amplicon, "_", sample_type, 
                 "_decontam_prevalencemethod", date, ".png"), 
-         multipanel_contaminants, width = 21, units = "in", dpi = 300)
+         multipanel_contaminants, width = 21, height = 10, units = "in", 
+         dpi = 300)
   
   # remove negative controls
   if(sample_type == "leaf"){
@@ -381,4 +384,87 @@ decontaminate_samples <- function(ps, sample_type, yourname, amplicon, date){
   write.csv(asv_table, paste0(yourname, "_", amplicon, "_", sample_type, 
                               "ASV_table_decontam", date, ".csv"))
   return(final_data)
+}
+
+plot_decontam_seq_depth <- function(metadata, sample_type, date){
+  ggplot(metadata, 
+         aes(as.numeric(seq_count_decontam), 
+             fill = sequencing_batch)) + 
+    geom_histogram(binwidth = 1000) + 
+    theme_bw() + 
+    ggtitle(paste0(sample_type, " sequencing depth histogram")) + 
+    geom_vline(aes(xintercept=median(as.numeric(seq_count_dada2))), 
+               color="blue", 
+               linetype="dashed") + 
+    geom_vline(aes(xintercept=median(as.numeric(seq_count_decontam), 
+                                     na.rm = TRUE)), 
+               color="red", 
+               linetype="dashed") +
+    labs(x = "Read count after decontam", y = "count", 
+         fill = "Sequencing batch")
+  
+  ggsave(paste0(sample_type, "/", yourname, "_", amplicon, "_", sample_type, 
+                "_sequencing_depth_postdecontam", date,".png"), width = 9, 
+         height = 5, units = "in", dpi = 300)
+}
+
+check_batch_effect <- function(ps, amplicon, yourname, date){
+  # extract asv table
+  sequence_data <- as.data.frame(as.matrix(ps@otu_table))
+  
+  # extract metadata
+  metadata <- as.data.frame(as.matrix(ps@sam_data))
+  metadata$sample_type[which(metadata$sample_type == "Soil")] <- paste0(metadata$soil_horizon[which(metadata$sample_type == "Soil")], 
+                                                               " Soil")
+  
+  # make a transposed version of asv table
+  sequence_data_t <- as.data.frame(t(sequence_data))
+  
+  # calculate Aitchison distance for o samples
+  aitch <- aDist(sequence_data_t+1, y = NULL) #need to add +1 otherwise all values are NA due to 0s in df
+  aitch <- as.matrix(aitch)
+  
+  # test for sequencing batch and depth effect
+  print(adonis2(aitch ~ as.factor(metadata$sequencing_batch)))
+  print(adonis2(aitch ~ as.factor(metadata$tree_type)))
+  print(adonis2(aitch ~ as.factor(metadata$tree_age)))
+  print(adonis2(aitch ~ as.factor(metadata$tree_pit_type)))
+  print(adonis2(aitch ~ as.factor(metadata$tree_species)))
+  print(adonis2(aitch ~ as.factor(metadata$site_name)))
+  print(adonis2(aitch ~ as.factor(metadata$sample_type)))
+  
+  
+  all.MDS <- metaMDS(aitch, k=2, zerodist="add")
+  coordinates <- data.frame(scores(all.MDS))
+  coordinates <- cbind(coordinates, metadata)
+  
+  # plot samples by different variables
+  seq_batch <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2, 
+                          col = as.factor(sequencing_batch))) + 
+    geom_point() + stat_ellipse() + theme_bw()
+  tree_type <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2, 
+                                       col = as.factor(tree_type))) + 
+    geom_point() + stat_ellipse() + theme_bw()
+  tree_age <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2, 
+                                      col = as.factor(tree_age))) + 
+    geom_point() + stat_ellipse() + theme_bw()
+  tree_pit_type <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2, 
+                                           col = as.factor(tree_pit_type))) + 
+    geom_point() + stat_ellipse() + theme_bw()
+  tree_species <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2, 
+                                          col = as.factor(tree_species))) + 
+    geom_point() + stat_ellipse() + theme_bw()
+  site_name <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2, 
+                                       col = as.factor(site_name))) + 
+    geom_point() + stat_ellipse() + theme_bw()
+  sample_type <- ggplot(coordinates, aes(x = NMDS1, y = NMDS2, 
+                                         col = as.factor(sample_type))) + 
+    geom_point() + stat_ellipse() + theme_bw()
+  
+  multipanel <- grid.arrange(seq_batch, tree_type, tree_age, tree_pit_type,
+                             tree_species, site_name, sample_type, nrow = 2, 
+                             ncol = 4)
+  
+  ggsave(paste0(yourname, "_", amplicon, "_check_batch_effect", date, ".png"), 
+         multipanel, width = 28, height = 10, units = "in", dpi = 300)
 }
