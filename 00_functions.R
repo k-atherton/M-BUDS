@@ -468,3 +468,132 @@ check_batch_effect <- function(ps, amplicon, yourname, date){
   ggsave(paste0(yourname, "_", amplicon, "_check_batch_effect", date, ".png"), 
          multipanel, width = 28, height = 10, units = "in", dpi = 300)
 }
+
+batch_correct <- function(ps, amplicon, yourname, date){
+  # get asv table from phyloseq object
+  asv_table <- as.data.frame(as.matrix(ps@otu_table))
+  
+  # remove any taxa with 0 counts and any samples under 1000 counts as 
+  # ComBat_seq will not work if you have samples with 10k+ counts AND really 
+  # low counts in the same dataset
+  asv_table <- asv_table[which(rowSums(asv_table) > 0), 
+                         which(colSums(asv_table) > 1000)]
+  asv_table <- asv_table[,order(colnames(asv_table))]
+  asv_table <- as.matrix(asv_table)
+  
+  # asv_table <- as.matrix(asv_table)
+  # asv_table <- asv_table %>% mutate_if(is.character, as.numeric)
+  
+  # get metadata from phyloseq object
+  metadata <- as.data.frame(as.matrix(ps@sam_data))
+  
+  # keep metadata samples which are still in the asv table
+  metadata <- metadata[which(rownames(metadata) %in% colnames(asv_table)),]
+  
+  # order the metadata by sample name
+  metadata <- metadata[order(row.names(metadata)),]
+  
+  # batch is defined as the sample type, as the samples were extracted and 
+  # amplified with different methods, but the sequencing batch did not have
+  # a batch effect
+  batch <- paste0(metadata$sample_type, " ", metadata$soil_horizon)
+  # for leaves, remove the soil horizon NA
+  batch <- gsub(" NA", "", batch) 
+  # for roots, just keep roots as they were all amplified the same way
+  batch <- gsub("Root.*", "Root", batch) 
+  
+  # the covariates we want to maintain the signature of are tree age and tree 
+  # pit type
+  age <- metadata$tree_age
+  type <- metadata$tree_pit_type
+  covar_mod <- data.frame(age, type)
+  
+  # batch correct with ComBat_seq
+  batch_corrected <- ComBat_seq(asv_table, batch, group=NULL, covar_mod)
+  
+  # visualize how ComBat_seq changed the sample sums
+  pre_combatseq <- as.data.frame(colSums(asv_table))
+  post_combatseq <- as.data.frame(colSums(batch_corrected))
+  
+  pre_figure <- ggplot(pre_combatseq, aes(x = `colSums(asv_table)`)) + 
+    geom_histogram() + xlab("Pre-Batch Correction Sample Count") + 
+    ylab("Count") + theme_bw() 
+  post_figure <- ggplot(post_combatseq, aes(x = `colSums(batch_corrected)`)) +
+    geom_histogram() + xlab("Post-Batch Correction Sample Count") + 
+    ylab("Count") + theme_bw()
+  
+  multipanel <- grid.arrange(pre_figure, post_figure, ncol = 2, nrow = 1)
+  
+  ggsave(paste0(yourname, "_", amplicon, "_batchcorrection_change", date, 
+                ".png"), multipanel, width = 14, height = 5, units = "in", 
+         dpi = 300)
+  
+  return(batch_corrected)
+}
+
+rarefy_data <- function(ps, sample_type, amplicon, yourname, date){
+  # extract asv table from pre-rarefied data
+  pre_rare_asv <- as.data.frame(as.matrix(ps@otu_table))
+  
+  # rarefy data
+  set.seed(1)
+  if(sample_type == "leaf"){
+    ps_rare <- rarefy_even_depth(ps, rngseed=1, sample.size=200, replace=F)
+  }
+  else{
+    ps_rare <- rarefy_even_depth(ps, rngseed=1, 
+                                 sample.size=min(sample_sums(ps)), replace=F)
+  }
+  
+  # extract the asv table from the rarefied data
+  rare_asv <- as.data.frame(as.matrix(ps_rare@otu_table))
+  
+  # write to files
+  write.csv(rare_asv, paste0(yourname, "_", amplicon, "_", sample_type, 
+                             "_rarefied_ASV_table", date, ".csv"))
+ 
+  # format data for plotting
+  rare_asv$asv <- rownames(rare_asv)
+  pre_rare_asv$asv <- rownames(pre_rare_asv)
+  
+  data_long <- pivot_longer(rare_asv, !asv, names_to = "sample", 
+                            values_to = "rarefied_count")
+  data_long_pre <- pivot_longer(pre_rare_asv, !asv, names_to = "sample", 
+                                values_to = "pre_rarefied_count")
+
+  data_compare <- merge(data_long, data_long_pre, by = c("asv", "sample"))
+  
+  tax <- as.data.frame(as.matrix(ps@tax_table))
+  tax$asv <- rownames(tax)
+  
+  data_compare <- merge(data_compare, tax, by = "asv")
+  
+  # plot change
+  by_phylum <- ggplot(data_compare, aes(x = pre_rarefied_count, 
+                                        y = rarefied_count, col = Phylum)) + 
+    geom_point() + theme_bw()
+  
+  by_sample <- ggplot(data_compare, aes(x = pre_rarefied_count, 
+                                        y = rarefied_count, col = sample)) + 
+    geom_point() + theme_bw()
+  multipanel <- grid.arrange(by_phylum, by_sample, ncol = 1, nrow = 2)
+  ggsave(paste0("Figures/", yourname, "_", amplicon, "_", sample_type, 
+                "_pre_post_rarefaction_counts", date, ".png"), multipanel, 
+         height = 10, width = 7, units = "in", dpi = 300)
+  
+  # plot rarefaction curves
+  if(sample_type == "leaf"){
+    png(filename=paste0(yourname, "_", amplicon, "_", sample_type, 
+                        "rarefaction_curve", date, ".png"))
+    rarecurve(t(as.data.frame(as.matrix(ps@otu_table))), step = 20, 
+              sample = 200, col = "blue", label = FALSE)
+    dev.off()
+  } else{
+    png(filename=paste0("Figures/", yourname, "_", amplicon, "_", sample_type, 
+                        "rarefaction_curve", date, ".png"))
+    rarecurve(t(as.data.frame(as.matrix(ps@otu_table))), step = 20, 
+              sample = min(colSums(as.data.frame(as.matrix(ps@otu_table)))), 
+              col = "blue", label = FALSE)
+    dev.off()
+  }
+}
