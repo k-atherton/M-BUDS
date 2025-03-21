@@ -597,3 +597,42 @@ rarefy_data <- function(ps, sample_type, amplicon, yourname, date){
     dev.off()
   }
 }
+
+clr_data <- function(ps, sample_type, amplicon, yourname, date){
+  # extract the ASV table
+  asv_table <- as.data.frame(as.matrix(ps@otu_table))
+  
+  # do the CLR transformation
+  clr_transformed <- as.data.frame(clr(asv_table+1))
+  
+  # write to file
+  write.csv(clr_transformed, paste0(yourname, "_", amplicon, "_", sample_type, 
+                             "_CLRtransformed_ASV_table", date, ".csv"))
+}
+
+zscore_data <- function(ps, sample_type, amplicon, yourname, date){
+  # extract the ASV table
+  asv_table <- as.data.frame(as.matrix(ps@otu_table))
+  
+  # do the Z-Score transformation
+  z_transformed <- as.data.frame(scale(asv_table, center = TRUE, scale = TRUE))
+  
+  # write to file
+  write.csv(z_transformed, paste0(yourname, "_", amplicon, "_", sample_type, 
+                                    "_ZScoretransformed_ASV_table", date, ".csv"))
+}
+
+aitchison_data <- function(ps, sample_type, amplicon, yourname, date){
+  # extract the ASV table
+  asv_table <- as.data.frame(as.matrix(ps@otu_table))
+  
+  # calculate Aitchison distance matrix
+  aitchison_distance_matrix <- aDist(t(asv_table+1), y = NULL)
+  aitchison_distance_matrix <- as.matrix(aitchison_distance_matrix)
+  
+  # write to file
+  write.csv(aitchison_distance_matrix, paste0(yourname, "_", amplicon, "_", 
+                                              sample_type, 
+                                              "_Aitchison_distance_matrix", 
+                                              date, ".csv"))
+}

@@ -8,6 +8,7 @@ library(gridExtra)
 library(sva)
 library(dplyr)
 library(tidyr)
+library(compositions)
 
 ### SCRIPT SETUP ##############################################################
 date <- format(Sys.Date(),"_%Y%m%d")
@@ -74,7 +75,11 @@ setwd(paste0(pwd, "02_Clean_Data/05_Transform_Data/", amplicon,
              "/CLR_Transformed_Tables"))
 # clr-transform separately for each sample type and all together
 if(clr_transform == "Y"){
-  
+  clr_data(ps_leaf, "leaf", amplicon, yourname, date)
+  clr_data(ps_root, "root", amplicon, yourname, date)
+  clr_data(ps_msoil, "msoil", amplicon, yourname, date)
+  clr_data(ps_osoil, "osoil", amplicon, yourname, date)
+  clr_data(ps_all, "allsampletypes", amplicon, yourname, date)
 }
 
 ### Z-SCORE TRANSFORM #########################################################
@@ -82,7 +87,11 @@ setwd(paste0(pwd, "02_Clean_Data/05_Transform_Data/", amplicon,
              "/ZScore_Transformed_Tables"))
 # z-score transform separately for each sample type and all together
 if(z_transform == "Y"){
-  
+  zscore_data(ps_leaf, "leaf", amplicon, yourname, date)
+  zscore_data(ps_root, "root", amplicon, yourname, date)
+  zscore_data(ps_msoil, "msoil", amplicon, yourname, date)
+  zscore_data(ps_osoil, "osoil", amplicon, yourname, date)
+  zscore_data(ps_all, "allsampletypes", amplicon, yourname, date)
 }
 
 ### CALCULATE AITCHISON DISTANCE MATRIX #######################################
@@ -91,6 +100,10 @@ setwd(paste0(pwd, "02_Clean_Data/05_Transform_Data/", amplicon,
 # calculate aitchison_distance sparately for each sample type and all together
 # for the all together distance matrix, use the batch-corrected data
 if(aitchison_distance == "Y"){
-  
+  aitchison_data(ps_leaf, "leaf", amplicon, yourname, date)
+  aitchison_data(ps_root, "root", amplicon, yourname, date)
+  aitchison_data(ps_msoil, "msoil", amplicon, yourname, date)
+  aitchison_data(ps_osoil, "osoil", amplicon, yourname, date)
+  aitchison_data(ps_all, "allsampletypes", amplicon, yourname, date)
 }
 

@@ -135,6 +135,13 @@ rownames(tax) <- tax[,1]
 tax <- tax[,-1]
 rm(list = c('names','split_taxa','taxa_names','tax_table'))
 
+# add functional giuld to taxonomy
+if(amplicon == "16S"){
+  tax <- add_16s_guild()
+} else{
+  tax <- add_its_guild()
+}
+
 # write files to csv
 write.csv(data, paste0("02_DADA2_ASV_Tables/", amplicon, "/", yourname,
                        "_", amplicon, "_ASV_table_allsampletypes_raw",
