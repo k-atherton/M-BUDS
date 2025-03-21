@@ -1,4 +1,5 @@
-# Kathryn Atherton Dysbiosis in Urban Street Trees (Chapter 2)
+# M-BUDS: MicroBiome Urban Dysbiosis in Street Trees 
+Kathryn Atherton Dysbiosis in Urban Street Trees (Chapter 2)
 The purpose of this project is to understand how urbanization impacts the tree-associated microbiome. 
 
 ## Requirements
