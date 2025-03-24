@@ -21,7 +21,7 @@ echo "Job name : $JOB_NAME"
 echo "=========================================================="
 
 echo "Running on 16S Samples"
-module load R
+module load R/4.3.1
 Rscript 05_transform_data.R \
 	-a "16S" \
 	-n "atherton" \

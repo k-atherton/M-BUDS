@@ -1,5 +1,6 @@
 ### LOAD IN PACKAGES ##########################################################
 print("LOADING IN PACKAGES:")
+if(!require("optparse")) install.packages("optparse")
 library(optparse)
 library(vroom)
 library(plyr)
@@ -8,7 +9,7 @@ library(phyloseq)
 library(readxl)
 
 ### SCRIPT SETUP ##############################################################
-PRINT("SETTING UP SCRIPT:")
+print("SETTING UP SCRIPT:")
 date <- format(Sys.Date(),"_%Y%m%d")
 pwd <- "/projectnb/talbot-lab-data/Katies_data/M-BUDS/"
 
@@ -176,7 +177,7 @@ write.csv(tax,paste0(yourname, "_", amplicon, "_taxonomy_allsampletypes_raw",
                      date,".csv"))
 
 ### READ IN SAMPLE METADATA ###################################################
-print ("READING IN SAMPLE METADATA:")
+print("READING IN SAMPLE METADATA:")
 setwd(paste0(pwd,"01_Collect_Data/01_Sample_Metadata"))
 # record raw dada2 read counts in metadata table
 if(amplicon == "16S"){

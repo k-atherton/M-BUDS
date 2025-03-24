@@ -22,7 +22,7 @@ echo "Job name : $JOB_NAME"
 echo "=========================================================="
 
 echo "Running on 16S data"
-module load R
+module load R/4.3.1 
 Rscript 02_format_raw_dada2_asv_tables.R \
 	-a "16S" \
 	-n "atherton" \

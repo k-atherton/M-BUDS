@@ -24,14 +24,14 @@ echo "Job name : $JOB_NAME"
 echo "=========================================================="
 
 echo "Running on 16S Samples"
-module load R
-Rscript 03_run_filter_samples.R \
+module load R/4.3.1
+Rscript 03_filter_samples.R \
 	-a "16S" \
 	-n "atherton" \
 	-e "N"
 
 echo "Running on ITS samples"
-Rscript 03_run_filter_samples.R \
+Rscript 03_filter_samples.R \
 	-a "ITS" \
 	-n "atherton" \
 	-e "N"
