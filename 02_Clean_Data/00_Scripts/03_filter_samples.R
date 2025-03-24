@@ -1,4 +1,6 @@
 ### LOAD IN PACKAGES ##########################################################
+print("LOADING IN PACKAGES:")
+library(optparse)
 library(vroom)
 library(phyloseq)
 library(ggplot2)
@@ -7,16 +9,34 @@ library(gridExtra)
 library(vegan)
 
 ### SCRIPT SETUP ##############################################################
+print("SETTING UP SCRIPT:")
 date <- format(Sys.Date(),"_%Y%m%d")
-pwd <- "/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/"
-amplicon <- "16S" # options: 16S or ITS
-yourname <- "atherton" # user's last name for file storage purposes
-edit_metadata <- "N" # options: Y or N
+pwd <- "/projectnb/talbot-lab-data/Katies_data/M-BUDS/"
+
+option_list = list(
+  make_option(c("-a", "--amplicon"), type="character", default="16S", 
+              help="amplicon dataset to filter; options: 16S or ITS [default= %default]", 
+              metavar="character"),
+  make_option(c("-n", "--name"), type="character", default="atherton", 
+              help="last name for output file naming scheme [default= %default]", 
+              metavar="character"),
+  make_option(c("-e", "--edit"), type="character", default="N", 
+              help="do you want to edit the metadata file? options: Y or N [default= %default]", 
+              metavar="character")
+)
+
+opt_parser = OptionParser(option_list=option_list)
+opt = parse_args(opt_parser)
+
+amplicon <- opt$amplicon
+yourname <- opt$name
+edit_metadata <- opt$edit
 
 setwd(pwd)
 source("00_functions.R")
 
 ### READ IN PHYLOSEQ OBJECTS ##################################################
+print("READING IN PHYLOSEQ OBJECTS:")
 setwd(paste0("02_Clean_Data/02_DADA2_ASV_Tables/",amplicon))
 ps_leaf <- read_in_file(getwd(), paste0("atherton_", amplicon, 
                                         "_phyloseq_leaf_raw_withnegcontrols_"), 
@@ -62,6 +82,7 @@ msoil_meta <- bin_seq_depth(msoil_meta)
 osoil_meta <- bin_seq_depth(osoil_meta)
 
 ### VISUALIZE RAW DATA ########################################################
+print("VISUALIZING RAW DATA:")
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
              "/Figures"))
 
@@ -71,7 +92,9 @@ plot_prefilter_seq_depth(msoil_meta, "msoil", 8000, date)
 plot_prefilter_seq_depth(osoil_meta, "osoil", 8000, date)
 
 ### DROP OUTLIERS AND SAMPLES WITH TOO FEW READS ##############################
+print("DROPPING OUTLIERS AND SAMPLES WITH TOO FEW READS:")
 ### LEAF SAMPLES ##############################################################
+print("TESTING LEAF SAMPLES:")
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
              "/Figures/leaf"))
 leaf_raw <- otu_table(ps_leaf)
@@ -124,6 +147,7 @@ saveRDS(ps_leaf, paste0(yourname, "_", amplicon,
                         "_leaf_phyloseq_filteredsamples_withnc", date, ".RDS"))
 
 ### ROOT SAMPLES ##############################################################
+print("TESTING ROOT SAMPLES:")
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
              "/Figures/root"))
 root_raw <- otu_table(ps_root)
@@ -184,6 +208,7 @@ saveRDS(ps_root, paste0(yourname, "_", amplicon,
                         "_root_phyloseq_filteredsamples_withnc", date, ".RDS"))
 
 ### MSOIL SAMPLES #############################################################
+print("TESTING M SOIL SAMPLES:")
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
              "/Figures/msoil"))
 msoil_raw <- otu_table(ps_msoil)
@@ -233,6 +258,7 @@ saveRDS(ps_msoil, paste0(yourname, "_", amplicon,
                         "_msoil_phyloseq_filteredsamples_withnc", date, ".RDS"))
 
 ### OSOIL SAMPLES #############################################################
+print("TESTING O SOIL SAMPLES:")
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon, 
              "/Figures/osoil"))
 osoil_raw <- otu_table(ps_osoil)
@@ -286,6 +312,7 @@ saveRDS(ps_osoil, paste0(yourname, "_", amplicon,
 
 ### WRITE TO METADATA WHETHER SAMPLES WERE DROPPED OR NOT #####################
 if(edit_metadata == "Y"){
+  print("WRITING TO METADATA WHETHER SAMPLES WERE DROPPED OR NOT:")
   # read in metadata
   setwd(paste0(pwd,"01_Collect_Data/01_Sample_Metadata"))
   metadata <- read_in_file(getwd(), paste0("atherton_sample_metadata_", 
@@ -295,7 +322,7 @@ if(edit_metadata == "Y"){
   
   # record NA for samples without sequence data and negative controls
   metadata$sequences_dropped[is.na(metadata$sample_name)] <- NA
-  metadata$sequences_dropped[metadata$sample_type = "Negataive Control"] <- NA
+  metadata$sequences_dropped[metadata$sample_type == "Negataive Control"] <- NA
   
   # record outlier for outlier samples
   metadata$sequences_dropped[metadata$sample_name %in% leaf_outliers] <- "Outlier"

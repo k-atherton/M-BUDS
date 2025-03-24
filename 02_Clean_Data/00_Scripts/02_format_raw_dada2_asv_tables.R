@@ -1,21 +1,42 @@
 ### LOAD IN PACKAGES ##########################################################
+print("LOADING IN PACKAGES:")
+library(optparse)
 library(vroom)
 library(plyr)
 library(dplyr)
 library(phyloseq)
+library(readxl)
 
 ### SCRIPT SETUP ##############################################################
+PRINT("SETTING UP SCRIPT:")
 date <- format(Sys.Date(),"_%Y%m%d")
-pwd <- "/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/"
-amplicon <- "16S" # options: 16S or ITS
-yourname <- "atherton" # user's last name for file storage purposes
-edit_metadata <- "N" # options: Y or N
+pwd <- "/projectnb/talbot-lab-data/Katies_data/M-BUDS/"
+
+option_list = list(
+  make_option(c("-a", "--amplicon"), type="character", default="16S", 
+              help="amplicon dataset to filter; options: 16S or ITS [default= %default]", 
+              metavar="character"),
+  make_option(c("-n", "--name"), type="character", default="atherton", 
+              help="last name for output file naming scheme [default= %default]", 
+              metavar="character"),
+  make_option(c("-e", "--edit"), type="character", default="N", 
+              help="do you want to edit the metadata file? options: Y or N [default= %default]", 
+              metavar="character")
+)
+
+opt_parser = OptionParser(option_list=option_list)
+opt = parse_args(opt_parser)
+
+amplicon <- opt$amplicon
+yourname <- opt$name
+edit_metadata <- opt$edit
 
 setwd(pwd)
 source("00_functions.R")
-setwd("02_Clean_Data")
+setwd(paste0(pwd, "02_Clean_Data"))
 
 ### READ IN AND FORMAT ASV TABLES #############################################
+print("READING IN AND FORMATTING ASV TABLES:")
 # load sequencing data
 nr1 <- read_in_dada2_asv_table(paste0("01_DADA2/", amplicon, "_NR1/"), 
                                paste0("atherton_NR1_", amplicon, 
@@ -66,6 +87,7 @@ rownames(data) <- data$ASV
 data <- data[,-1]
 
 ### READ IN AND FORMAT TAXONOMY TABLES ########################################
+print("READING IN AND FORMATTING TAXONOMY TABLES:")
 # load taxonomic data
 tax_nr1 <- read_in_dada2_taxonomy(paste0("01_DADA2/", amplicon, "_NR1/"), 
                                   paste0("atherton_NR1_", amplicon, 
@@ -135,22 +157,26 @@ rownames(tax) <- tax[,1]
 tax <- tax[,-1]
 rm(list = c('names','split_taxa','taxa_names','tax_table'))
 
-# add functional giuld to taxonomy
+# add functional guild to taxonomy
+setwd(paste0(pwd, "/01_Collect_Data/04_Other_Data"))
 if(amplicon == "16S"){
-  tax <- add_16s_guild()
+  functional_guilds <- read_in_file(getwd(), 
+                                    "werbin_bacteria_functional_groups", ".csv")
+  tax <- add_16s_guild(tax, functional_guilds)
 } else{
-  tax <- add_its_guild()
+  functional_guilds <- read_excel("fungal_traits_database.xlsx")
+  tax <- add_its_guild(tax, functional_guilds)
 }
 
 # write files to csv
-write.csv(data, paste0("02_DADA2_ASV_Tables/", amplicon, "/", yourname,
-                       "_", amplicon, "_ASV_table_allsampletypes_raw",
+setwd(paste0(pwd, "02_Clean_Data/02_DADA2_ASV_Tables/", amplicon))
+write.csv(data, paste0(yourname, "_", amplicon, "_ASV_table_allsampletypes_raw",
                        date,".csv"))
-write.csv(tax,paste0("02_DADA2_ASV_Tables/", amplicon, "/", yourname,
-                     "_", amplicon, "_taxonomy_allsampletypes_raw",
+write.csv(tax,paste0(yourname, "_", amplicon, "_taxonomy_allsampletypes_raw",
                      date,".csv"))
 
 ### READ IN SAMPLE METADATA ###################################################
+print ("READING IN SAMPLE METADATA:")
 setwd(paste0(pwd,"01_Collect_Data/01_Sample_Metadata"))
 # record raw dada2 read counts in metadata table
 if(amplicon == "16S"){
@@ -161,6 +187,7 @@ if(amplicon == "16S"){
 
 if(edit_metadata %in% c("Y", "y")){
   ### EDIT SAMPLE METADATA FILE ###############################################
+  print("EDITING SAMPLE METADATA FILE:")
   # add is.control column
   metadata$is_control <- FALSE
   # record negatvie controls as controls in is.control column
@@ -184,6 +211,7 @@ if(edit_metadata %in% c("Y", "y")){
 }
 
 ### SEPARATE ASV TABLE BY SAMPLE TYPE #########################################
+print("SEPARATING ASV TABLE BY SAMPLE TYPE:")
 setwd(paste0(pwd,"02_Clean_Data/02_DADA2_ASV_Tables/", amplicon))
 
 # make phyloseq objects

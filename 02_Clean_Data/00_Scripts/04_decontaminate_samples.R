@@ -1,20 +1,40 @@
 ### LOAD IN PACKAGES ##########################################################
+print("LOADING IN PACKAGES:")
+library(optparse)
 library(vroom)
 library(phyloseq)
 library(gridExtra)
 library(decontam)
 
 ### SCRIPT SETUP ##############################################################
+print("SETTING UP SCRIPT:")
 date <- format(Sys.Date(),"_%Y%m%d")
 pwd <- "/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/"
-amplicon <- "16S" # options: 16S or ITS
-yourname <- "atherton" # user's last name for file storage purposes
-edit_metadata <- "N" # options: Y or N
+
+option_list = list(
+  make_option(c("-a", "--amplicon"), type="character", default="16S", 
+              help="amplicon dataset to filter; options: 16S or ITS [default= %default]", 
+              metavar="character"),
+  make_option(c("-n", "--name"), type="character", default="atherton", 
+              help="last name for output file naming scheme [default= %default]", 
+              metavar="character"),
+  make_option(c("-e", "--edit"), type="character", default="N", 
+              help="do you want to edit the metadata file? options: Y or N [default= %default]", 
+              metavar="character")
+)
+
+opt_parser = OptionParser(option_list=option_list)
+opt = parse_args(opt_parser)
+
+amplicon <- opt$amplicon
+yourname <- opt$name
+edit_metadata <- opt$edit
 
 setwd(pwd)
 source("00_functions.R")
 
 ### READ IN PHYLOSEQ OBJECTS ##################################################
+print("READING IN PHYLOSEQ OBJECTS:")
 setwd(paste0(pwd, "02_Clean_Data/03_Filter_Samples_ASV_Tables/", amplicon))
 ps_leaf <- read_in_file(getwd(), paste0("atherton_", amplicon, 
                                         "_leaf_phyloseq_filteredsamples_withnc_"), 
@@ -30,6 +50,7 @@ ps_osoil <- read_in_file(getwd(), paste0("atherton_", amplicon,
                         ".RDS")
 
 ### RUN DECONTAM ##############################################################
+print("RUNNING DECONTAM:")
 setwd(paste0(pwd, "02_Clean_Data/04_Decontam_ASV_Tables/", amplicon))
 ps_leaf_decontam <- decontaminate_samples(ps_leaf, "leaf", yourname, amplicon, 
                                           date)
@@ -41,6 +62,7 @@ ps_osoil_decontam <- decontaminate_samples(ps_osoil, "osoil", yourname, amplicon
                                           date)
 
 ### MERGE ALL DECONTAMINATED SAMPLE TYPES INTO ONE PHYLOSEQ OBJECT ############
+print("MERGING ALL DECONTAMINATED SAMPLE TYPES INTO ONE PHYLOSEQ OBJECT")
 ps_decontam <- merge_phyloseq(ps_leaf_decontam, ps_root_decontam)
 ps_decontam <- merge_phyloseq(ps_decontam, ps_msoil_decontam)
 ps_decontam <- merge_phyloseq(ps_decontam, ps_osoil_decontam)
@@ -50,6 +72,7 @@ write.csv(asv_table, paste0(yourname, "_", amplicon, "_",
                             "allsampletypes_ASV_table_decontam", date, ".csv"))
 
 ### WRITE ALL PHYLOSEQ OBJECTS AS RDS TO SCC ##################################
+print("WRITING ALL PHYLOSEQ OBJECTS TO SCC:")
 saveRDS(ps_decontam, paste0(yourname, "_", amplicon, "_",
                             "allsampletypes_phyloseq_decontam", date, ".RDS"))
 saveRDS(ps_leaf_decontam, paste0(yourname, "_", amplicon, "_",
@@ -63,6 +86,7 @@ saveRDS(ps_osoil_decontam, paste0(yourname, "_", amplicon, "_",
 
 ### WRITE POST-DECONTAM SEQUENCE COUNT TO METADATA ############################
 if(edit_metadata == "Y") {
+  print("WRITING DECONTAM SEQUENCE COUNT TO METADATA:")
   metadata <- as.data.frame(as.matrix(ps_decontam@sam_data))
   
   # add decontam sequence count column
@@ -84,6 +108,7 @@ if(edit_metadata == "Y") {
 }
 
 ### VISUALIZE HOW DECONTAM IMPACTED SEQUENCING DEPTH ##########################
+print("VISUALIZE HOW DECONTAM IMPACTED SEQUENCING DEPTH:")
 setwd(paste0(pwd,"/02_Clean_Data/04_Decontam_ASV_Tables/",amplicon,"/Figures"))
 plot_decontam_seq_depth(ps_leaf_decontam@sam_data, "leaf", date)
 plot_decontam_seq_depth(ps_root_decontam@sam_data, "root", date)
