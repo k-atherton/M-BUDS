@@ -9,7 +9,7 @@ library(decontam)
 ### SCRIPT SETUP ##############################################################
 print("SETTING UP SCRIPT:")
 date <- format(Sys.Date(),"_%Y%m%d")
-pwd <- "/projectnb/talbot-lab-data/Katies_data/Street_Trees_Dysbiosis/"
+pwd <- "/projectnb/talbot-lab-data/Katies_data/M-BUDS/"
 
 option_list = list(
   make_option(c("-a", "--amplicon"), type="character", default="16S", 
