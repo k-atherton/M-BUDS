@@ -569,13 +569,13 @@ decontaminate_samples <- function(ps, sample_type, yourname, amplicon, date){
     # remove chloroplasts, mitochondria, and anything not a bacteria
     print("Removing non-bacterial/archeal reads, chloroplasts, and mitochondria.")
     final_data <- subset_taxa(final_data, Kingdom != "Unassigned")
-    final_data <- subset_taxa(final_data, Kingdom != "d__Eukaryota")
-    final_data <- subset_taxa(final_data, Family != " f__Mitochondria")
-    final_data <- subset_taxa(final_data, Order != " o__Chloroplast")
+    final_data <- subset_taxa(final_data, Kingdom != "Eukaryota")
+    final_data <- subset_taxa(final_data, Family != "Mitochondria")
+    final_data <- subset_taxa(final_data, Order != "Chloroplast")
   } else{
     # remove anything not a fungi
     print("Removing non-fungal reads.")
-    final_data <- subset_taxa(final_data, Kingdom == "k__Fungi")
+    final_data <- subset_taxa(final_data, Kingdom == "Fungi")
   }
   
   # write ASV table to CSV

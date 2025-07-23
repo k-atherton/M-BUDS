@@ -5,6 +5,7 @@ library(vroom)
 library(phyloseq)
 library(gridExtra)
 library(decontam)
+library(ggplot2)
 
 ### SCRIPT SETUP ##############################################################
 print("SETTING UP SCRIPT:")

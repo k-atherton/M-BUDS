@@ -1,6 +1,5 @@
 ### LOAD IN PACKAGES ##########################################################
 print("LOADING IN PACKAGES:")
-if(!require("optparse")) install.packages("optparse")
 library(optparse)
 library(vroom)
 library(plyr)

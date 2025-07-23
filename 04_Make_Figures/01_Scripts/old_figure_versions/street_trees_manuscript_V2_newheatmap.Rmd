@@ -62,10 +62,10 @@ mean_se <- function(x, mult = 1) {
 }
 
 # read in metadata
-metadata_its <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_its_new.csv")
+metadata_its <- read.csv("/projectnb/talbot-lab-data/Katies_data/M-BUDS/Data/metadata_its_new.csv")
 metadata_its <- distinct(metadata_its)
 # metadata_16s_100 <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_100.csv")
-metadata_16s_200 <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_200_new.csv")
+metadata_16s_200 <- read.csv("/projectnb/talbot-lab-data/M-BUDS/Street_Trees/Data/metadata_16s_200_new.csv")
 metadata_16s_200 <- distinct(metadata_16s_200)
 # metadata_16s_300 <- read.csv("/projectnb/talbot-lab-data/Katies_data/Street_Trees/Data/metadata_16s_300.csv")
 metadata_its$tree_distance_from_edge <- as.numeric(metadata_its$tree_distance_from_edge)
