@@ -1,0 +1,26 @@
+# Ignore data files
+*.csv
+*.RDS
+*.txt
+*.fasta
+*.tsv
+02_Clean_Data/01_DADA2/*/intermediate/*
+01_Collect_Data/*
+
+# Ignore analyses not included in paper
+03_Data_Analysis/03_Identify_Indicator_Species/*
+03_Data_Analysis/04_Networks/*
+
+
+# Ignore figures
+*.png
+*.pdf
+
+# Remove the RMDs
+*.Rmd
+
+# Remove the script used to make asv tables for Harvard Forest
+02_Clean_Data/make_asv_tables_for_harvard_forest.R
+
+# Remove the old figure versions
+04_Make_Figures/01_Scripts/old_figure_versions/*
