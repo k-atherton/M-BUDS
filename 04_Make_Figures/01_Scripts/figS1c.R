@@ -137,6 +137,7 @@ model_human <- lme(formula(log(human_paths+1) ~ new_tree_type),
               method = "ML")
 summary(model_human)
 summary(emmeans(model_human, pairwise ~ new_tree_type))
+anova(model_human)
 
 ### STATISTICS WOOD PATHOGENS ###
 model_plant <- lme(formula(log(wood_paths+1) ~ new_tree_type), 
@@ -144,6 +145,7 @@ model_plant <- lme(formula(log(wood_paths+1) ~ new_tree_type),
               method = "ML")
 summary(model_plant)
 summary(emmeans(model_plant, pairwise ~ new_tree_type))
+anova(model_plant)
 
 # Format the x-axis tickmarks
 vdata$site_edge <- gsub(" ", "\n", vdata$tree_type)

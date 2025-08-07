@@ -92,6 +92,7 @@ model_meth <- lme(formula(perc_methanotroph ~ site_edge),
                   method = "ML", data = metadata_leaf_16s)
 summary(model_meth)
 summary(emmeans(model_meth, pairwise ~ site_edge))
+anova(model_meth)
 
 
 # Create the Tukey groups

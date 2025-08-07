@@ -170,6 +170,7 @@ model_animal_soil <- lme(formula(rel_abund ~ site_edge),
                          method = "ML", data = metadata_soil_its)
 summary(model_animal_soil)
 summary(emmeans(model_animal_soil, pairwise ~ site_edge))
+anova(model_animal_soil)
 
 ### STATISTICS BACTERIAL ZOONOTIC PATHOGENS ###
 model_zoonotic <- lme(formula(rel_abund ~ site_edge), 
@@ -177,6 +178,7 @@ model_zoonotic <- lme(formula(rel_abund ~ site_edge),
                       method = "ML", data = metadata_soil_16s)
 summary(model_zoonotic)
 summary(emmeans(model_zoonotic, pairwise ~ site_edge))
+anova(model_zoonotic)
 
 # Make the text for adding Tukey groups and record the location of the group id on the y-axis
 vdata$tukey <- NA

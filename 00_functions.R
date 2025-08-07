@@ -317,7 +317,7 @@ id_outliers_evaluate_seq_depth <- function(data, metadata, sample_type, yourname
     stat_ellipse() +
     theme_bw()
   ggsave(paste0(yourname, "_", amplicon, "_", sample_type, 
-                "_NMDS_identify_outliers_", rep, date, ".png"), width = 7, 
+                "_NMDS_identify_outliers_", rep, date, ".dfg"), width = 7, 
          height = 5, units = "in", dpi = 300)
 
   by_batch <- ggplot(coordinates,
@@ -372,7 +372,7 @@ id_outliers_evaluate_seq_depth <- function(data, metadata, sample_type, yourname
                              by_species, by_site, nrow = 2, ncol = 3)
   
   ggsave(paste0(yourname, "_", amplicon, "_", sample_type, 
-                "_NMDS_predrop_datastructure_", rep, date, ".png"), multipanel, 
+                "_NMDS_predrop_datastructure_", rep, date, ".pdf"), multipanel, 
          width = 21, height = 10, units = "in", dpi = 300)
 }
 

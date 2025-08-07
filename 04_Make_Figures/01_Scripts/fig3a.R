@@ -102,6 +102,7 @@ model_no3 <- lme(formula(soil_no3 ~ site_edge),
                  method = "ML", data = metadata_soil_16s)
 summary(model_no3)
 summary(emmeans(model_no3, pairwise ~ site_edge))
+anova(model_no3)
 
 # Create the Tukey groups
 for(i in 1:nrow(metadata_soil_16s)){

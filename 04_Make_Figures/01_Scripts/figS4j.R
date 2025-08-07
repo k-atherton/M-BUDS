@@ -7,6 +7,7 @@ library(ggtext)
 library(MuMIn)
 library(reshape2)
 library(fields)
+library(vegan)
 
 ### SET UP SCRIPT #############################################################
 shapes <- c(16, 17, 15, 8)
@@ -151,7 +152,7 @@ print(adonis2(root_aitch_16s~pca_root_df_16s$tree_species))
 # Plot figure s4j
 figs4j_root <- ggplot(pca_root_df_16s, 
                       aes(x = PC1, y = PC2, color = tree_pit_type)) +
-  geom_point(aes(shape = sample_type), alpha = 0.5, size = 2) +
+  geom_point(alpha = 0.5, size = 2) +
   xlab(paste("Principal Component 1 \n(", 
              round(pca_variance_root_16s[1] * 100, 2), "% variance)", sep = "")) +
   ylab(paste("Principal Component 2 \n(", 

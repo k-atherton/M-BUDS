@@ -112,7 +112,7 @@ figS1b <- ggplot(metadata_soil_its, aes(x = perc_ecm,
         legend.title = element_text(size = 0), 
         plot.title = element_text(size = 10),
         legend.position = "bottom") + 
-  scale_shape_manual(values = shapes[2:5]) +
+  scale_shape_manual(values = shapes) +
   ggtitle("Fungal wood decomposer and ECM relative abundance belowground")
 
 figS1b

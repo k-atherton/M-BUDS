@@ -122,6 +122,7 @@ model_total <- lme(formula(sap_tot ~ site_edge),
                    method = "ML", data = metadata_soil_its)
 summary(model_total)
 summary(emmeans(model_total, pairwise ~ site_edge))
+anova(model_total)
 
 ### STATISTICS DUNG DECOMPOSERS ###
 model_dung <- lme(formula(perc_dung_saprotroph ~ site_edge), 
@@ -129,6 +130,7 @@ model_dung <- lme(formula(perc_dung_saprotroph ~ site_edge),
                   method = "ML", data = metadata_soil_its)
 summary(model_dung)
 summary(emmeans(model_dung, pairwise ~ site_edge))
+anova(model_dung)
 
 ### STATISTICS WOOD DECOMPOSERS ###
 model_wood <- lme(formula(perc_wood_saprotroph ~ site_edge), 
@@ -136,6 +138,7 @@ model_wood <- lme(formula(perc_wood_saprotroph ~ site_edge),
                   method = "ML", data = metadata_soil_its)
 summary(model_wood)
 summary(emmeans(model_wood, pairwise ~ site_edge))
+anova(model_wood)
 
 ### STATISTICS LITTER DECOMPOSERS ###
 model_litter <- lme(formula(perc_litter_saprotroph ~ site_edge), 
@@ -143,6 +146,7 @@ model_litter <- lme(formula(perc_litter_saprotroph ~ site_edge),
                     method = "ML", data = metadata_soil_its)
 summary(model_litter)
 summary(emmeans(model_litter, pairwise ~ site_edge))
+anova(model_litter)
 
 ### STATISTICS SOIL DECOMPOSERS ###
 model_soil <- lme(formula(perc_soil_saprotroph ~ site_edge), 
@@ -150,6 +154,7 @@ model_soil <- lme(formula(perc_soil_saprotroph ~ site_edge),
                   method = "ML", data = metadata_soil_its)
 summary(model_soil)
 summary(emmeans(model_soil, pairwise ~ site_edge))
+anova(model_soil)
 
 # Format the data and find the point where the Tukey groups should be placed
 vdata <- vdata %>%

@@ -154,6 +154,7 @@ model_chitin <- lme(formula(perc_chitinolytic ~ site_edge),
                     method = "ML", data = metadata_soil_16s)
 summary(model_chitin)
 summary(emmeans(model_chitin, pairwise ~ site_edge))
+anova(model_chitin)
 
 ### STATISTICS DISSIMILATORY NITRATE REDUCING BACTERIA ###
 model_dnr <- lme(formula(perc_dissim_nitrate_reduction ~ site_edge), 
@@ -161,6 +162,7 @@ model_dnr <- lme(formula(perc_dissim_nitrate_reduction ~ site_edge),
                  method = "ML", data = metadata_soil_16s)
 summary(model_dnr)
 summary(emmeans(model_dnr, pairwise ~ site_edge))
+anova(model_dnr)
 
 ### STATISTICS NITRIFYING BACTERIA ###
 model_nit <- lme(formula(perc_partial_nitrification ~ site_edge), 
@@ -168,6 +170,7 @@ model_nit <- lme(formula(perc_partial_nitrification ~ site_edge),
                  method = "ML", data = metadata_soil_16s)
 summary(model_nit)
 summary(emmeans(model_nit, pairwise ~ site_edge))
+anova(model_nit)
 
 ### STATISTICS DENITRIFYING BACTERIA ###
 model_denit <- lme(formula(perc_denitrification ~ site_edge), 
@@ -175,6 +178,7 @@ model_denit <- lme(formula(perc_denitrification ~ site_edge),
                    method = "ML", data = metadata_soil_16s)
 summary(model_denit)
 summary(emmeans(model_denit, pairwise ~ site_edge))
+anova(model_denit)
 
 # Make the text for adding Tukey groups and record the location of the group id on the y-axis
 vdata$tukey <- NA

@@ -141,6 +141,8 @@ model_animal_leaves <- lme(formula(rel_abund ~ site_edge),
                            method = "ML", data = metadata_leaf_its)
 summary(model_animal_leaves)
 summary(emmeans(model_animal_leaves, pairwise ~ site_edge))
+anova(model_animal_leaves)
+
 
 # Make the text for adding Tukey groups and record the location of the group id on the y-axis
 vdata$tukey <- NA

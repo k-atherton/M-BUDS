@@ -190,6 +190,7 @@ model_woodsap <- lme(formula(rel_abund ~ site_edge),
                      method = "ML", data = metadata_soil_its)
 summary(model_woodsap)
 summary(emmeans(model_woodsap, pairwise ~ site_edge))
+anova(model_woodsap)
 
 ### STATISTICS CELLULOLYTIC BACTERIA ###
 model_cell <- lme(formula(rel_abund ~ site_edge), 
@@ -197,6 +198,7 @@ model_cell <- lme(formula(rel_abund ~ site_edge),
                   method = "ML", data = metadata_soil_16s_cell)
 summary(model_cell)
 summary(emmeans(model_cell, pairwise ~ site_edge))
+anova(model_cell)
 
 ### STATISTICS LIGNOLYGIC rel_abund ###
 model_lig <- lme(formula(rel_abund ~ site_edge), 
@@ -204,7 +206,7 @@ model_lig <- lme(formula(rel_abund ~ site_edge),
                  method = "ML", data = metadata_soil_16s_lig)
 summary(model_lig)
 summary(emmeans(model_lig, pairwise ~ site_edge))
-
+anova(model_lig)
 
 # Make the text for adding Tukey groups and record the location of the group id on the y-axis
 vdata$tukey <- NA

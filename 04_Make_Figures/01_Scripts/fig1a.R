@@ -137,6 +137,7 @@ model_ecm <- lme(formula(rel_abund ~ site_edge),
                  method = "ML", data = metadata_soil_its)
 summary(model_ecm)
 summary(emmeans(model_ecm, pairwise ~ site_edge))
+anova(model_ecm)
 
 ### STATISTICS EPIPHYTES ###
 model_epiphyte <- lme(formula(rel_abund ~ site_edge), 
@@ -144,6 +145,7 @@ model_epiphyte <- lme(formula(rel_abund ~ site_edge),
                       method = "ML", data = metadata_leaf_its)
 summary(model_epiphyte)
 summary(emmeans(model_epiphyte, pairwise ~ site_edge))
+anova(model_epiphyte)
 
 
 # Make the text for adding Tukey groups and record the location of the group id on the y-axis
@@ -246,16 +248,16 @@ fig1a <- ggplot(vdata, aes(x = site_edge, color = guild)) +
   scale_y_continuous(
     sec.axis = sec_axis(~./20, name = "log(Epiphyte relative abundance (%))")) +
   theme(text = element_text(family = "Arial"),
-        axis.title.x = element_text(size = 10, color = "black"), 
-        axis.title.y = element_text(size = 10),
-        axis.text.x = element_text(size = 10, color = "black"),
-        axis.text.y = element_text(size = 10, color = "black"),
-        legend.text = element_text(size = 10),
+        axis.title.x = element_text(size = 7, color = "black"), 
+        axis.title.y = element_text(size = 7),
+        axis.text.x = element_text(size = 5, color = "black"),
+        axis.text.y = element_text(size = 5, color = "black"),
+        legend.text = element_text(size = 5),
         legend.title = element_text(size = 0),
         legend.key.size = unit(0.15, "in"),
         legend.background = element_rect(fill = "transparent", color = NA),
         legend.key = element_rect(fill = "transparent", color = NA),
-        plot.title = element_text(size = 10),
+        plot.title = element_text(size = 7),
         legend.position = c(0.8, 1.05)) +
   scale_color_manual(values = linear_pal) +
   scale_fill_manual(values = linear_pal) +
